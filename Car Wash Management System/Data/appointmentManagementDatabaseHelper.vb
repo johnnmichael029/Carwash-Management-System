@@ -170,26 +170,6 @@ Public Class AppointmentManagementDatabaseHelper
                     cmdDelete.ExecuteNonQuery()
                 End Using
 
-                ' Add the new sales services to SalesHistoryTable if needed
-                Dim insertSalesHistoryQuery = "INSERT INTO SalesHistoryTable (CustomerID, SaleDate, PaymentMethod, AppointmentID, ServiceID, AddonServiceID, TotalPrice) VALUES (@CustomerID, @SaleDate, @PaymentMethod, @AppointmentID, @ServiceID, @AddonServiceID, @TotalPrice)"
-                For Each item As AppointmentService In allSaleItems
-                    Dim baseServiceID As Integer = SalesDatabaseHelper.GetServiceIdByName(item.Service)
-                    Dim addonID As Integer? = SalesDatabaseHelper.GetAddonIdByName(item.Addon)
-                    Using cmdHistory As New SqlCommand(insertSalesHistoryQuery, con, transaction)
-                        cmdHistory.Parameters.AddWithValue("@CustomerID", customerID)
-                        cmdHistory.Parameters.AddWithValue("@SaleDate", DateTime.Now)
-                        cmdHistory.Parameters.AddWithValue("@PaymentMethod", paymentMethod)
-                        cmdHistory.Parameters.AddWithValue("@AppointmentID", appointmentID)
-                        cmdHistory.Parameters.AddWithValue("@ServiceID", baseServiceID)
-                        If addonID.HasValue Then
-                            cmdHistory.Parameters.AddWithValue("@AddonServiceID", addonID.Value)
-                        Else
-                            cmdHistory.Parameters.AddWithValue("@AddonServiceID", DBNull.Value)
-                        End If
-                        cmdHistory.Parameters.AddWithValue("@TotalPrice", item.ServicePrice)
-                        cmdHistory.ExecuteNonQuery()
-                    End Using
-                Next
                 ' Step 3: Insert new entries into AppointmentServiceTable
                 Dim insertAppointmentServiceQuery = "INSERT INTO AppointmentServiceTable (AppointmentID, CustomerID, ServiceID, AddonServiceID, Subtotal, AppointmentStatus) VALUES (@AppointmentID, @CustomerID, @ServiceID, @AddonServiceID, @Subtotal, @AppointmentStatus)"
                 For Each item As AppointmentService In allSaleItems

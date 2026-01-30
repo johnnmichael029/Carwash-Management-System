@@ -173,26 +173,6 @@ Public Class ContractsDatabaseHelper
                     cmdDelete.ExecuteNonQuery()
                 End Using
 
-                Dim insertSalesHistoryQuery = "INSERT INTO SalesHistoryTable (CustomerID, SaleDate, PaymentMethod, ContractID, ServiceID, AddonServiceID, TotalPrice) VALUES (@CustomerID, @SaleDate, @PaymentMethod, @ContractID, @ServiceID, @AddonServiceID, @TotalPrice)"
-                For Each item As ContractsService In allSaleItems
-                    Dim baseServiceID As Integer = SalesDatabaseHelper.GetServiceIdByName(item.Service)
-                    Dim addonID As Integer? = SalesDatabaseHelper.GetAddonIdByName(item.Addon)
-                    Using cmdHistory As New SqlCommand(insertSalesHistoryQuery, con, transaction)
-                        cmdHistory.Parameters.AddWithValue("@CustomerID", customerID)
-                        cmdHistory.Parameters.AddWithValue("@SaleDate", DateTime.Now)
-                        cmdHistory.Parameters.AddWithValue("@PaymentMethod", paymentMethod)
-                        cmdHistory.Parameters.AddWithValue("@ContractID", contractID)
-                        cmdHistory.Parameters.AddWithValue("@ServiceID", baseServiceID)
-                        If addonID.HasValue Then
-                            cmdHistory.Parameters.AddWithValue("@AddonServiceID", addonID.Value)
-                        Else
-                            cmdHistory.Parameters.AddWithValue("@AddonServiceID", DBNull.Value)
-                        End If
-                        cmdHistory.Parameters.AddWithValue("@TotalPrice", item.ServicePrice)
-                        cmdHistory.ExecuteNonQuery()
-                    End Using
-                Next
-
                 Dim insertServiceQuery = "INSERT INTO ContractServiceTable (ContractID, ServiceID, AddonServiceID, Subtotal) VALUES (@ContractID, @ServiceID, @AddonServiceID, @Subtotal)"
                 For Each item As ContractsService In allSaleItems
                     Dim baseServiceID As Integer = SalesDatabaseHelper.GetServiceIdByName(item.Service)

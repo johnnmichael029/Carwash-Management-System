@@ -64,84 +64,66 @@ Public Class SalesDatabaseHelper
     End Sub
     Public Shared Sub UpdateSale(customerID As Integer, saleID As String, allSaleItems As List(Of SalesService), paymentMethod As String, referenceID As String, cheque As String, detailer As String, totalPrice As Decimal)
         Dim iSaleID As Integer = CInt(saleID)
+
         Using con As New SqlConnection(constr)
             con.Open()
             Dim transaction As SqlTransaction = con.BeginTransaction()
             Try
-                ' Step 1: Update SalesHistoryTable
-                Dim updateHistoryQuery = "UPDATE RegularSaleTable SET CustomerID = @CustomerID, PaymentMethod = @PaymentMethod, ReferenceID = @ReferenceID, Detailer = @Detailer, TotalPrice = @TotalPrice WHERE SalesID = @SalesID"
-                Using cmd As New SqlCommand(updateHistoryQuery, con, transaction)
+                ' Step 1: Update the main Sale Header
+                Dim updateHeaderQuery = "UPDATE RegularSaleTable SET CustomerID = @CustomerID, PaymentMethod = @PaymentMethod, ReferenceID = @ReferenceID, Detailer = @Detailer, TotalPrice = @TotalPrice WHERE SalesID = @SalesID"
+                Using cmd As New SqlCommand(updateHeaderQuery, con, transaction)
                     cmd.Parameters.AddWithValue("@CustomerID", customerID)
                     cmd.Parameters.AddWithValue("@PaymentMethod", paymentMethod)
-                    If paymentMethod = "Cheque" Then
-                        cmd.Parameters.AddWithValue("@ReferenceID", cheque)
-                    Else
-                        cmd.Parameters.AddWithValue("@ReferenceID", If(String.IsNullOrEmpty(referenceID), CType(DBNull.Value, Object), referenceID))
-                    End If
+
+                    Dim refValue As Object = If(paymentMethod = "Cheque", cheque, If(String.IsNullOrEmpty(referenceID), DBNull.Value, referenceID))
+                    cmd.Parameters.AddWithValue("@ReferenceID", refValue)
+
                     cmd.Parameters.AddWithValue("@TotalPrice", totalPrice)
                     cmd.Parameters.AddWithValue("@Detailer", detailer)
                     cmd.Parameters.AddWithValue("@SalesID", iSaleID)
                     cmd.ExecuteNonQuery()
                 End Using
-                ' Step 2: Delete existing entries in SalesServiceTable and SalesHistoryTable for this SalesID
-                Dim deleteServicesQuery = "DELETE FROM SalesServiceTable WHERE SalesID = @SalesID"
-                Using cmdDelete As New SqlCommand(deleteServicesQuery, con, transaction)
-                    cmdDelete.Parameters.AddWithValue("@SalesID", saleID)
-                    cmdDelete.ExecuteNonQuery()
-                End Using
-                Dim deleteSalesServicesFromHistoryQuery = "DELETE FROM SalesHistoryTable WHERE RegularSaleID = @SalesID"
-                Using cmdDelete As New SqlCommand(deleteSalesServicesFromHistoryQuery, con, transaction)
-                    cmdDelete.Parameters.AddWithValue("@SalesID", saleID)
-                    cmdDelete.ExecuteNonQuery()
+
+                ' Step 2: Clear old line items
+
+                ' Delete from History first
+                Dim deleteHistoryQuery = "DELETE FROM SalesHistoryTable WHERE RegularSaleID = @SalesID AND [Form] = 'Regular-Sale'"
+                Using cmdDeleteH As New SqlCommand(deleteHistoryQuery, con, transaction)
+                    cmdDeleteH.Parameters.AddWithValue("@SalesID", iSaleID)
+                    cmdDeleteH.ExecuteNonQuery()
                 End Using
 
-                ' Add the new sales services to SalesHistoryTable if needed
-                Dim insertSalesHistoryQuery = "INSERT INTO SalesHistoryTable (CustomerID, SaleDate, PaymentMethod, RegularSaleID, ServiceID, AddonServiceID, TotalPrice) VALUES (@CustomerID, @SaleDate, @PaymentMethod, @RegularSaleID, @ServiceID, @AddonServiceID, @TotalPrice)"
-                For Each item As SalesService In allSaleItems
-                    Dim baseServiceID As Integer = GetServiceIdByName(item.Service)
-                    Dim addonID As Integer? = GetAddonIdByName(item.Addon)
-                    Using cmdHistory As New SqlCommand(insertSalesHistoryQuery, con, transaction)
-                        cmdHistory.Parameters.AddWithValue("@CustomerID", customerID)
-                        cmdHistory.Parameters.AddWithValue("@SaleDate", DateTime.Now)
-                        cmdHistory.Parameters.AddWithValue("@PaymentMethod", paymentMethod)
-                        cmdHistory.Parameters.AddWithValue("@RegularSaleID", iSaleID)
-                        cmdHistory.Parameters.AddWithValue("@ServiceID", baseServiceID)
-                        If addonID.HasValue Then
-                            cmdHistory.Parameters.AddWithValue("@AddonServiceID", addonID.Value)
-                        Else
-                            cmdHistory.Parameters.AddWithValue("@AddonServiceID", DBNull.Value)
-                        End If
-                        cmdHistory.Parameters.AddWithValue("@TotalPrice", item.ServicePrice)
-                        cmdHistory.ExecuteNonQuery()
-                    End Using
-                Next
-                ' Step 3: Insert new entries into SalesServiceTable
+                ' Delete from Services
+                Dim deleteServicesQuery = "DELETE FROM SalesServiceTable WHERE SalesID = @SalesID"
+                Using cmdDeleteS As New SqlCommand(deleteServicesQuery, con, transaction)
+                    cmdDeleteS.Parameters.AddWithValue("@SalesID", iSaleID)
+                    cmdDeleteS.ExecuteNonQuery()
+                End Using
+
+                ' Step 3: Insert new entries into SalesServiceTable ONLY
+                ' The SQL Trigger "tr_InsertSalesHistoryOnLineItem" will automatically 
                 Dim insertServiceQuery = "INSERT INTO SalesServiceTable (SalesID, ServiceID, AddonServiceID, Subtotal) VALUES (@SalesID, @ServiceID, @AddonServiceID, @Subtotal)"
+
                 For Each item As SalesService In allSaleItems
                     Dim baseServiceID As Integer = GetServiceIdByName(item.Service)
                     Dim addonID As Integer? = GetAddonIdByName(item.Addon)
+
                     Using cmdService As New SqlCommand(insertServiceQuery, con, transaction)
                         cmdService.Parameters.AddWithValue("@SalesID", iSaleID)
                         cmdService.Parameters.AddWithValue("@ServiceID", baseServiceID)
-                        If addonID.HasValue Then
-                            cmdService.Parameters.AddWithValue("@AddonServiceID", addonID.Value)
-                        Else
-                            cmdService.Parameters.AddWithValue("@AddonServiceID", DBNull.Value)
-                        End If
+                        cmdService.Parameters.AddWithValue("@AddonServiceID", If(addonID.HasValue, addonID.Value, DBNull.Value))
                         cmdService.Parameters.AddWithValue("@Subtotal", item.ServicePrice)
                         cmdService.ExecuteNonQuery()
                     End Using
                 Next
+
                 transaction.Commit()
             Catch ex As Exception
                 transaction.Rollback()
-                MessageBox.Show("Error updating sale: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-            Finally
-                con.Close()
+                MessageBox.Show("Error updating sale: " & ex.Message)
             End Try
         End Using
     End Sub
-    ' --- BASE SERVICE ID LOOKUP ---
     Public Shared Function GetServiceIdByName(serviceName As String) As Integer
         If String.IsNullOrWhiteSpace(serviceName) Then
             Throw New ArgumentException("Service name cannot be empty.")

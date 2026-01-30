@@ -81,7 +81,7 @@ Public Class PickupManagementDatabaseHelper
                     cmd.Parameters.AddWithValue("@Notes", notes)
                     newSalesID = Convert.ToInt32(cmd.ExecuteScalar())
                 End Using
-                Dim insertServiceQuery = "INSERT INTO PickupServiceTable (PickupID, ServiceID, AddonServiceID, Subtotal) VALUES (@PickupID, @ServiceID, @AddonServiceID, @Subtotal)"
+                Dim insertServiceQuery = "INSERT INTO PickupServiceTable (PickupID, ServiceID, AddonServiceID, Subtotal, PickupStatus) VALUES (@PickupID, @ServiceID, @AddonServiceID, @Subtotal, @PickupStatus)"
 
                 For Each item As PickupService In allSaleItems
                     Dim baseServiceID As Integer = SalesDatabaseHelper.GetServiceIdByName(item.Service)
@@ -95,6 +95,7 @@ Public Class PickupManagementDatabaseHelper
                             cmdService.Parameters.AddWithValue("@AddonServiceID", DBNull.Value)
                         End If
                         cmdService.Parameters.AddWithValue("@Subtotal", item.ServicePrice)
+                        cmdService.Parameters.AddWithValue("@PickupStatus", pickupStatus)
 
                         cmdService.ExecuteNonQuery()
                     End Using
@@ -149,34 +150,7 @@ Public Class PickupManagementDatabaseHelper
                     cmdDelete.ExecuteNonQuery()
                 End Using
 
-                Dim insertSalesHistoryQuery = "INSERT INTO SalesHistoryTable (CustomerID, SaleDate, PaymentMethod, ReferenceID, PickupID, ServiceID, AddonServiceID, TotalPrice, Detailer, Form) VALUES (@CustomerID, @SaleDate, @PaymentMethod, @ReferenceID, @PickupID, @ServiceID, @AddonServiceID, @TotalPrice, @Detailer, @Form)"
-                For Each item As PickupService In allSaleItems
-                    Dim baseServiceID As Integer = SalesDatabaseHelper.GetServiceIdByName(item.Service)
-                    Dim addonID As Integer? = SalesDatabaseHelper.GetAddonIdByName(item.Addon)
-                    Using cmdHistory As New SqlCommand(insertSalesHistoryQuery, con, transaction)
-                        cmdHistory.Parameters.AddWithValue("@CustomerID", customerID)
-                        cmdHistory.Parameters.AddWithValue("@SaleDate", DateTime.Now)
-                        cmdHistory.Parameters.AddWithValue("@PaymentMethod", paymentMethod)
-                        If paymentMethod = "Cheque" Then
-                            cmdHistory.Parameters.AddWithValue("@ReferenceID", cheque)
-                        Else
-                            cmdHistory.Parameters.AddWithValue("@ReferenceID", If(String.IsNullOrEmpty(referenceID), CType(DBNull.Value, Object), referenceID))
-                        End If
-                        cmdHistory.Parameters.AddWithValue("@PickupID", pickupID)
-                        cmdHistory.Parameters.AddWithValue("@ServiceID", baseServiceID)
-                        If addonID.HasValue Then
-                            cmdHistory.Parameters.AddWithValue("@AddonServiceID", addonID.Value)
-                        Else
-                            cmdHistory.Parameters.AddWithValue("@AddonServiceID", DBNull.Value)
-                        End If
-                        cmdHistory.Parameters.AddWithValue("@TotalPrice", item.ServicePrice)
-                        cmdHistory.Parameters.AddWithValue("@Detailer", detailer)
-                        cmdHistory.Parameters.AddWithValue("@Form", "Pickup-Sale")
-                        cmdHistory.ExecuteNonQuery()
-                    End Using
-                Next
-
-                Dim insertServiceQuery = "INSERT INTO PickupServiceTable (PickupID, ServiceID, AddonServiceID, Subtotal) VALUES (@PickupID, @ServiceID, @AddonServiceID, @Subtotal)"
+                Dim insertServiceQuery = "INSERT INTO PickupServiceTable (PickupID, ServiceID, AddonServiceID, Subtotal, PickupStatus) VALUES (@PickupID, @ServiceID, @AddonServiceID, @Subtotal, @PickupStatus)"
                 For Each item As PickupService In allSaleItems
                     Dim baseServiceID As Integer = SalesDatabaseHelper.GetServiceIdByName(item.Service)
                     Dim addonID As Integer? = SalesDatabaseHelper.GetAddonIdByName(item.Addon)
@@ -189,6 +163,7 @@ Public Class PickupManagementDatabaseHelper
                             cmdService.Parameters.AddWithValue("@AddonServiceID", DBNull.Value)
                         End If
                         cmdService.Parameters.AddWithValue("@Subtotal", item.ServicePrice)
+                        cmdService.Parameters.AddWithValue("@PickupStatus", pickupStatus)
                         cmdService.ExecuteNonQuery()
                     End Using
                 Next
