@@ -24,6 +24,7 @@ Public Class BaseForm
     Protected ReadOnly DataGridCellContentClick As DataGridCellContentClick
     Protected ReadOnly employeeMangamentDatabaseHelper As EmployeeMangamentDatabaseHelper
     Protected ReadOnly pickupManagementDatabaseHelper As PickupManagementDatabaseHelper
+    Protected ReadOnly LoginDatabaseHelper As LoginDatabaseHelper
     Public Sub New()
         ' Add any initialization after the InitializeComponent() call.
         reservationDatabaseHelper = New ReservationDatabaseHelper(constr)
@@ -47,6 +48,7 @@ Public Class BaseForm
         DataGridCellContentClick = New DataGridCellContentClick()
         employeeMangamentDatabaseHelper = New EmployeeMangamentDatabaseHelper(constr)
         pickupManagementDatabaseHelper = New PickupManagementDatabaseHelper(constr)
+        LoginDatabaseHelper = New LoginDatabaseHelper(constr)
 
     End Sub
 

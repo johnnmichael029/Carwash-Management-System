@@ -26,8 +26,9 @@
         FixDiscountButtonSave()
         EnabledTotalPriceFieldSave()
         SettingsService.DiscountButtonForm(CheckBoxEnableDiscount)
-        SettingsService.CheckIfAdmin(CheckBoxEnableDiscount, CheckBoxFixDiscount, NumericUpDownDiscount)
         SettingsService.EnabledTotalPriceFieldState(CheckBoxTotalPrice, ComboBoxSelectForm)
+        SettingsService.ApplyDiscountState(CheckBoxEnableDiscount, NumericUpDownDiscount, CheckBoxFixDiscount)
+        SettingsService.CheckIfAdmin(CheckBoxEnableDiscount, CheckBoxFixDiscount, NumericUpDownDiscount)
 
         SaveBtn.Enabled = False
         SaveBtn.Text = "Save"
@@ -61,8 +62,9 @@
 
         ' Saves the setting immediately on change
         SettingsService.DiscountButtonForm(CheckBoxEnableDiscount)
-        My.Settings.Save()
         SettingsService.ApplyDiscountState(Me.CheckBoxEnableDiscount, Me.NumericUpDownDiscount, Me.CheckBoxFixDiscount)
+
+        My.Settings.Save()
     End Sub
 
     Private Sub FixDiscountButtonSave()
@@ -114,14 +116,14 @@
         SaveBtn.BackColor = Color.LightGreen
         SaveBtn.ForeColor = Color.Black
         SettingsService.CheckIfAdmin(CheckBoxEnableDiscount, CheckBoxFixDiscount, NumericUpDownDiscount)
+        SettingsService.ApplyDiscountState(CheckBoxEnableDiscount, NumericUpDownDiscount, CheckBoxFixDiscount)
         SettingsService.RefreshAllDiscountControls()
     End Sub
 
     ' The Cancel button reloads the settings from disk (discarding unsaved changes) and closes the form.
     Private Sub CancelBtn_Click(sender As Object, e As EventArgs) Handles CancelBtn.Click
         My.Settings.Reload()
-
-        Me.Close()
+        Close()
     End Sub
 
     Private Sub CheckBoxTotalPrice_CheckedChanged(sender As Object, e As EventArgs) Handles CheckBoxTotalPrice.CheckedChanged
@@ -137,5 +139,13 @@
         SaveBtn.Text = "Save"
         SaveBtn.BackColor = Color.Green
         SaveBtn.ForeColor = Color.White
+    End Sub
+
+    Private Sub Label3_Click(sender As Object, e As EventArgs) Handles Label3.Click
+
+    End Sub
+
+    Private Sub BtnOK_Click(sender As Object, e As EventArgs) Handles BtnOK.Click
+        Me.Close()
     End Sub
 End Class

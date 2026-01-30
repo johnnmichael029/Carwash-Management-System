@@ -2,10 +2,9 @@
 Imports System.Text
 
 Public Class LoginService
-    Shared constr As String = "Data Source=JM\SQLEXPRESS;Initial Catalog=CarwashDB;Integrated Security=True;Trust Server Certificate=True"
-
-    Public Sub New()
-
+    Private Shared constr As String
+    Public Sub New(connectionString As String)
+        constr = connectionString
     End Sub
     Public Shared Function HashPassword(password As String) As (String, String)
         Dim saltBytes(15) As Byte

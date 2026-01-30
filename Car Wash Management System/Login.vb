@@ -3,10 +3,8 @@ Imports System.Text
 Imports Microsoft.Data.SqlClient
 Public Class Login
 
-    Dim constr As String = "Data Source=JM\SQLEXPRESS;Initial Catalog=CarwashDB;Integrated Security=True;Trust Server Certificate=True"
-    Private ReadOnly activityLogInDashboardService As New ActivityLogInDashboardService(constr)
-    Private ReadOnly loginService As LoginService
-    Private ReadOnly loginDatabaseHelper As LoginDatabaseHelper
+    Inherits BaseForm
+
 
     ' --- Animation State Variables ---
     Private Const START_Y As Integer = 20  ' Y position of the label when inside the textbox
@@ -21,9 +19,10 @@ Public Class Login
     Private IsAnimatingDownForPassword As Boolean = False
     Public Sub New()
         ' This call is required by the designer.
+        MyBase.New()
         InitializeComponent()
         ' Add any initialization after the InitializeComponent() call.
-        loginDatabaseHelper = New LoginDatabaseHelper(constr)
+
     End Sub
 
     Private Sub Dashboard_Load(sender As Object, e As EventArgs) Handles MyBase.Load

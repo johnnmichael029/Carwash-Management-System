@@ -1,9 +1,12 @@
 ﻿Public Class ActivityLogInDashboardService
-    Dim constr As String = "Data Source=JM\SQLEXPRESS;Initial Catalog=CarwashDB;Integrated Security=True;Trust Server Certificate=True"
+    Private Shared constr As String
     Private ReadOnly actitvityLogDBHelper As ListofActivityLogInDashboardDatabaseHelper
+
     Public Sub New(connectionString As String)
+        constr = connectionString
         actitvityLogDBHelper = New ListofActivityLogInDashboardDatabaseHelper(constr)
     End Sub
+
     Public Sub AddNewCustomer(customerName As String)
         actitvityLogDBHelper.LogActivity("New Customer Added", $"A new customer '{customerName}' was added to the system.")
     End Sub

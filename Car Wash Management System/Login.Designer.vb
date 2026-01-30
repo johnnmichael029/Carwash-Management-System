@@ -1,6 +1,6 @@
 ﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
 Partial Class Login
-    Inherits System.Windows.Forms.Form
+    Inherits BaseForm
 
     'Form overrides dispose to clean up the component list.
     <System.Diagnostics.DebuggerNonUserCode()>
@@ -54,7 +54,7 @@ Partial Class Login
         Panel1.Controls.Add(Panel2)
         Panel1.Controls.Add(LoginBtn)
         Panel1.Dock = DockStyle.Fill
-        Panel1.Font = New Font("Century Gothic", 9F)
+        Panel1.Font = New Font("Century Gothic", 9.0F)
         Panel1.Location = New Point(0, 0)
         Panel1.Name = "Panel1"
         Panel1.Size = New Size(1369, 749)
@@ -62,6 +62,7 @@ Partial Class Login
         ' 
         ' Panel4
         ' 
+        Panel4.Anchor = AnchorStyles.None
         Panel4.Controls.Add(PictureBoxHidden)
         Panel4.Controls.Add(PictureBoxShow)
         Panel4.Controls.Add(LabelHolderPassword)
@@ -125,6 +126,7 @@ Partial Class Login
         ' 
         ' Panel2
         ' 
+        Panel2.Anchor = AnchorStyles.None
         Panel2.Controls.Add(LabelHolderUsername)
         Panel2.Controls.Add(Panel3)
         Panel2.Controls.Add(TextBoxUsername)
@@ -195,7 +197,7 @@ Partial Class Login
         ' 
         ' Login
         ' 
-        AutoScaleDimensions = New SizeF(7F, 15F)
+        AutoScaleDimensions = New SizeF(7.0F, 15.0F)
         AutoScaleMode = AutoScaleMode.Font
         ClientSize = New Size(1369, 749)
         Controls.Add(Panel1)

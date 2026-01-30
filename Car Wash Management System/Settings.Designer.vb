@@ -25,6 +25,7 @@ Partial Class Settings
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Settings))
         ExitBtn = New Button()
         Panel1 = New Panel()
+        BtnOK = New Button()
         CancelBtn = New Button()
         SaveBtn = New Button()
         BodyPanel = New Panel()
@@ -65,6 +66,7 @@ Partial Class Settings
         ' Panel1
         ' 
         Panel1.BackColor = Color.FromArgb(CByte(241), CByte(244), CByte(254))
+        Panel1.Controls.Add(BtnOK)
         Panel1.Controls.Add(CancelBtn)
         Panel1.Controls.Add(SaveBtn)
         Panel1.Controls.Add(BodyPanel)
@@ -76,10 +78,26 @@ Partial Class Settings
         Panel1.Size = New Size(895, 749)
         Panel1.TabIndex = 113
         ' 
+        ' BtnOK
+        ' 
+        BtnOK.Anchor = AnchorStyles.None
+        BtnOK.BackColor = Color.FromArgb(CByte(103), CByte(103), CByte(231))
+        BtnOK.FlatAppearance.BorderSize = 0
+        BtnOK.FlatStyle = FlatStyle.Flat
+        BtnOK.Font = New Font("Century Gothic", 11.25F)
+        BtnOK.ForeColor = Color.White
+        BtnOK.Location = New Point(502, 706)
+        BtnOK.Name = "BtnOK"
+        BtnOK.Size = New Size(123, 40)
+        BtnOK.TabIndex = 147
+        BtnOK.Text = "OK"
+        BtnOK.TextImageRelation = TextImageRelation.ImageBeforeText
+        BtnOK.UseVisualStyleBackColor = False
+        ' 
         ' CancelBtn
         ' 
         CancelBtn.Anchor = AnchorStyles.None
-        CancelBtn.BackColor = Color.FromArgb(CByte(197), CByte(199), CByte(208))
+        CancelBtn.BackColor = Color.FromArgb(CByte(223), CByte(100), CByte(84))
         CancelBtn.FlatAppearance.BorderSize = 0
         CancelBtn.FlatStyle = FlatStyle.Flat
         CancelBtn.Font = New Font("Century Gothic", 11.25F)
@@ -150,9 +168,9 @@ Partial Class Settings
         Label3.Font = New Font("Century Gothic", 11.25F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         Label3.Location = New Point(3, 0)
         Label3.Name = "Label3"
-        Label3.Size = New Size(177, 18)
+        Label3.Size = New Size(202, 18)
         Label3.TabIndex = 146
-        Label3.Text = "Enable Total Price Field"
+        Label3.Text = "Enable Subtotal Price Field"
         ' 
         ' Label4
         ' 
@@ -336,4 +354,5 @@ Partial Class Settings
     Friend WithEvents LabelTotalPrice As Label
     Friend WithEvents CheckBoxTotalPrice As CheckBox
     Friend WithEvents ComboBoxSelectForm As ComboBox
+    Friend WithEvents BtnOK As Button
 End Class

@@ -701,7 +701,7 @@ Partial Class Carwash
         ' 
         AdminToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {AddUserToolStripMenuItem, EmployeeInformationToolStripMenuItem})
         AdminToolStripMenuItem.Name = "AdminToolStripMenuItem"
-        AdminToolStripMenuItem.Size = New Size(112, 22)
+        AdminToolStripMenuItem.Size = New Size(180, 22)
         AdminToolStripMenuItem.Text = "&Admin"
         ' 
         ' AddUserToolStripMenuItem
@@ -719,13 +719,13 @@ Partial Class Carwash
         ' SettingsToolStripMenuItem
         ' 
         SettingsToolStripMenuItem.Name = "SettingsToolStripMenuItem"
-        SettingsToolStripMenuItem.Size = New Size(112, 22)
-        SettingsToolStripMenuItem.Text = "Settings"
+        SettingsToolStripMenuItem.Size = New Size(180, 22)
+        SettingsToolStripMenuItem.Text = "&Settings"
         ' 
         ' ExitToolStripMenuItem
         ' 
         ExitToolStripMenuItem.Name = "ExitToolStripMenuItem"
-        ExitToolStripMenuItem.Size = New Size(112, 22)
+        ExitToolStripMenuItem.Size = New Size(180, 22)
         ExitToolStripMenuItem.Text = "E&xit"
         ' 
         ' ServiceTrackingToolStripMenuItem
