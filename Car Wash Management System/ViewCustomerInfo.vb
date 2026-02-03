@@ -80,4 +80,12 @@
     Private Sub DataGridViewCustomerHistory_CellFormatting(sender As Object, e As DataGridViewCellFormattingEventArgs) Handles DataGridViewCustomerHistory.CellFormatting
         DataGridFormattingService.DataGridCellFormattingPaymentMethod(e, "PaymentMethod", DataGridViewCustomerHistory)
     End Sub
+
+    Private Sub LabelRevenue_Click(sender As Object, e As EventArgs) Handles LabelRevenue.Click
+
+    End Sub
+
+    Private Sub ListViewVehicles_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListViewVehicles.SelectedIndexChanged
+
+    End Sub
 End Class

@@ -7,7 +7,6 @@
         ' Example: You need to implement this function:
         ' Public Shared Function LoadAllPeriodData(period As String) As SalesAnalyticsDatabaseHelper
 
-        ' Since we don't have LoadAllPeriodData, we'll mimic the current behavior but centralize
         Dim earningsData As SalesAnalyticsDatabaseHelper = SalesAnalyticsDatabaseHelper.GetDynamicEarningsData(period)
         earningsData.CurrentMonthCustomers = SalesAnalyticsDatabaseHelper.GetDynamicCustomerData(period).CurrentMonthCustomers ' Merging data
         earningsData.PreviousMonthCustomers = SalesAnalyticsDatabaseHelper.GetDynamicCustomerData(period).PreviousMonthCustomers

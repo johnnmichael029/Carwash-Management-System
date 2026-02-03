@@ -1,9 +1,12 @@
 ﻿Public Class EmployeeInformation
     Inherits BaseForm
+    Private ReadOnly viewEmployeeInfo As ViewEmployeeInfo
+
     Public Sub New()
         MyBase.New()
         ' This call is required by the designer.
         InitializeComponent()
+        viewEmployeeInfo = New ViewEmployeeInfo(Me)
 
         ' Add any initialization after the InitializeComponent() call.
 
@@ -12,7 +15,23 @@
         LoadDataGridEmployeeInformation()
         ChangeHeaderOfDataGridViewEmployee()
         DataGridViewEmployeeFontStyle()
+        AddButtonAction()
+
     End Sub
+
+    Private Sub TextBoxPhoneNumber_KeyPress(sender As Object, e As KeyPressEventArgs) Handles TextBoxPhoneNumber.KeyPress
+        ' Allow digits (0-9) and Control keys (like Backspace)
+        If Not Char.IsDigit(e.KeyChar) AndAlso Not Char.IsControl(e.KeyChar) Then
+            e.Handled = True ' This blocks the character
+        End If
+    End Sub
+    Private Sub TextBoxAge_KeyPress(sender As Object, e As KeyPressEventArgs) Handles TextBoxAge.KeyPress
+        ' Allow digits (0-9) and Control keys (like Backspace)
+        If Not Char.IsDigit(e.KeyChar) AndAlso Not Char.IsControl(e.KeyChar) Then
+            e.Handled = True ' This blocks the character
+        End If
+    End Sub
+
     Private Sub AddBtn_Click(sender As Object, e As EventArgs) Handles AddBtn.Click
         AddEmployeeData()
     End Sub
@@ -118,23 +137,40 @@
                                                     ' This is the custom error logic: display the message in a modal.
                                                     MessageBox.Show(message, "Appointment Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                                                 End Sub
+
         DataGridCellContentClick.GetSelectedRowData(
             DataGridViewEmployee,
-            TextBoxName,
-            TextBoxLastName,
-            TextBoxPhoneNumber,
-            TextBoxAge,
-            TextBoxEmail,
-            TextBoxAddress,
-            TextBoxBarangay,
-            ComboBoxGender,
-            ComboBoxPosition,
-            LabelEmployeeID,
+            viewEmployeeInfo.TextBoxName,
+            viewEmployeeInfo.TextBoxLastName,
+            viewEmployeeInfo.TextBoxNumber,
+            viewEmployeeInfo.TextBoxAge,
+            viewEmployeeInfo.TextBoxEmail,
+            viewEmployeeInfo.TextBoxCity,
+            viewEmployeeInfo.TextBoxBarangay,
+            viewEmployeeInfo.ComboBoxGender,
+            viewEmployeeInfo.ComboBoxPosition,
+            viewEmployeeInfo.LabelEmployeeID,
+            viewEmployeeeInfoDatabaseHelper,
+            viewEmployeeInfo.DataGridViewDetailerHistory,
             errorHandler
         )
+
+        If e.ColumnIndex = DataGridViewEmployee.Columns("actionsColumn").Index AndAlso e.RowIndex >= 0 Then
+            ViewEmployeeInfoService.ResetToDefault(viewEmployeeInfo.btnCyclePeriod)
+            viewEmployeeInfo.Show()
+            ViewEmployeeInfoService.CalculateAndRefresh(viewEmployeeInfo)
+        End If
+
     End Sub
 
-    Private Sub Panel2_Paint(sender As Object, e As PaintEventArgs) Handles Panel2.Paint
-
+    Public Sub AddButtonAction()
+        Dim updateButtonColumn As New DataGridViewButtonColumn With {
+            .HeaderText = "Action",
+            .Text = "View Info",
+            .UseColumnTextForButtonValue = True,
+            .Name = "actionsColumn"
+        }
+        DataGridViewEmployee.Columns.Add(updateButtonColumn)
     End Sub
+
 End Class

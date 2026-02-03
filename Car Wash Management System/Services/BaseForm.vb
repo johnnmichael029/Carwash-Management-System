@@ -25,6 +25,7 @@ Public Class BaseForm
     Protected ReadOnly employeeMangamentDatabaseHelper As EmployeeMangamentDatabaseHelper
     Protected ReadOnly pickupManagementDatabaseHelper As PickupManagementDatabaseHelper
     Protected ReadOnly LoginDatabaseHelper As LoginDatabaseHelper
+    Protected ReadOnly viewEmployeeeInfoDatabaseHelper As ViewEmployeeInfoDatabaseHelper
     Public Sub New()
         ' Add any initialization after the InitializeComponent() call.
         reservationDatabaseHelper = New ReservationDatabaseHelper(constr)
@@ -49,6 +50,7 @@ Public Class BaseForm
         employeeMangamentDatabaseHelper = New EmployeeMangamentDatabaseHelper(constr)
         pickupManagementDatabaseHelper = New PickupManagementDatabaseHelper(constr)
         LoginDatabaseHelper = New LoginDatabaseHelper(constr)
+        viewEmployeeeInfoDatabaseHelper = New ViewEmployeeInfoDatabaseHelper(constr)
 
     End Sub
 

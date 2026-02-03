@@ -301,6 +301,8 @@
        ComboBoxGender As ComboBox,
        ComboBoxPosition As ComboBox,
        LabelEmployeeID As Label,
+       viewEmployeeeInfoDatabaseHelper As ViewEmployeeInfoDatabaseHelper,
+       DataGridViewDetailerHistory As DataGridView,
        errorHandler As Action(Of String)
        )
         Try
@@ -311,16 +313,28 @@
                 Return
             End If
 
-            TextBoxName.Text = currentRow.Cells("Name").Value.ToString()
+            Dim employeeIDValue As String = currentRow.Cells("EmployeeID").Value.ToString()
+
+            If String.IsNullOrEmpty(employeeIDValue) Then
+                errorHandler.Invoke("Selected customer has no ID.")
+                Return
+            End If
+
+
+            TextBoxName.Text = currentRow.Cells(2).Value.ToString()
             TextBoxLastName.Text = currentRow.Cells("LastName").Value.ToString()
             TextBoxPhoneNumber.Text = currentRow.Cells("PhoneNumber").Value.ToString()
             TextBoxAge.Text = currentRow.Cells("Age").Value.ToString()
             TextBoxEmail.Text = currentRow.Cells("Email").Value.ToString()
             TextBoxAddress.Text = currentRow.Cells("Address").Value.ToString()
             TextBoxBarangay.Text = currentRow.Cells("Barangay").Value.ToString()
-            ComboBoxGender.Text = currentRow.Cells("Gender").Value.ToString()
-            ComboBoxPosition.Text = currentRow.Cells(10).Value.ToString()
-            LabelEmployeeID.Text = currentRow.Cells("EmployeeID").Value.ToString()
+            ComboBoxGender.Text = currentRow.Cells(10).Value.ToString()
+            ComboBoxPosition.Text = currentRow.Cells(11).Value.ToString().Trim()
+            LabelEmployeeID.Text = employeeIDValue
+
+
+            DataGridViewDetailerHistory.DataSource = viewEmployeeeInfoDatabaseHelper.GetEmployeeDetailMadeFiltered(employeeIDValue, ViewEmployeeInfoService.startDate, ViewEmployeeInfoService.endDate)
+
         Catch ex As Exception
             errorHandler.Invoke("An error occurred during employee data retrieval: " & ex.Message)
         End Try

@@ -399,7 +399,18 @@ Public Class AddButtonFunction
 
         Try
             ' --- 1. Validation ---
-
+            If TextBoxName.Text.Trim() = String.Empty Or
+               TextBoxLastName.Text.Trim() = String.Empty Or
+               TextBoxPhoneNumber.Text.Trim() = String.Empty Or
+               TextBoxAge.Text.Trim() = String.Empty Or
+               TextBoxEmail.Text.Trim() = String.Empty Or
+               TextBoxAddress.Text.Trim() = String.Empty Or
+               TextBoxBarangay.Text.Trim() = String.Empty Or
+               ComboBoxGender.SelectedIndex = -1 Or
+               ComboBoxPosition.SelectedIndex = -1 Then
+                errorHandler.Invoke("Please fill in all required employee fields.")
+                Return False
+            End If
 
             ' --- 2. Database Insertion ---
             EmployeeMangamentDatabaseHelper.AddEmployeeData(
@@ -411,7 +422,7 @@ Public Class AddButtonFunction
                 TextBoxAddress.Text.Trim(),
                 TextBoxBarangay.Text.Trim(),
                 ComboBoxGender.Text.Trim(),
-                ComboBoxPosition.Text
+                ComboBoxPosition.Text.Trim()
             )
 
             MessageBox.Show("Employee data added successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
