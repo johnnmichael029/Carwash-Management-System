@@ -14,7 +14,8 @@
 
     Private Sub ViewEmployeeInfo_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Me.CenterToScreen()
-
+        DataGridViewDetailerHistoryFontStyle()
+        ChangeHeaderOfDataGridViewDetailerHistory()
     End Sub
 
     Private Sub TextBoxNumber_KeyPress(sender As Object, e As KeyPressEventArgs) Handles TextBoxNumber.KeyPress
@@ -30,10 +31,25 @@
         End If
     End Sub
 
+    Private Sub DateTimePeriodData_ValueChanged(sender As Object, e As EventArgs) Handles DateTimePeriodData.ValueChanged
+        Try
+            ' Check if the SERVICE exists, because the Date ALWAYS exists
+            If ViewEmployeeInfoService IsNot Nothing Then
+                ' Use .Date to strip the current time and get exactly 12:00 AM
+                ViewEmployeeInfoService.endDate = DateTimePeriodData.Value.Date.AddDays(1)
+                ViewEmployeeInfoService.startDate = DateTimePeriodData.Value.Date
+                ViewEmployeeInfoService.CalculateAndRefresh(Me)
+            End If
+        Catch ex As Exception
+            MessageBox.Show("Refresh Error: " & ex.Message)
+        End Try
+    End Sub
+
     Private Sub FormCloseBtn_Click(sender As Object, e As EventArgs) Handles FormCloseBtn.Click
-        Me.Hide()
+        Me.Close()
         DataGridViewDetailerHistory.DataSource = Nothing
         LabelTotalSalary.Text = "0.00"
+        DateTimePeriodData.Value = DateTime.Today
 
         ' Reset the shared service dates
         ViewEmployeeInfoService.ResetToDefault(btnCyclePeriod)
@@ -41,11 +57,25 @@
     End Sub
 
 
-
     Private Sub ButtonToggleChart_Click(sender As Object, e As EventArgs) Handles btnCyclePeriod.Click
         ' Get the next period string
         Dim nextPeriod As String = ViewEmployeeInfoService.TogglePeriodView(btnCyclePeriod, Me)
 
+    End Sub
+
+    Private Sub DataGridViewDetailerHistoryFontStyle()
+        DataGridFontStyleService.DataGridFontStyle(DataGridViewDetailerHistory)
+    End Sub
+
+    Private Sub ChangeHeaderOfDataGridViewDetailerHistory()
+        DataGridViewDetailerHistory.Columns(0).HeaderText = "Sales ID"
+        DataGridViewDetailerHistory.Columns(1).HeaderText = "Detailer"
+        DataGridViewDetailerHistory.Columns(2).HeaderText = "Service"
+        DataGridViewDetailerHistory.Columns(3).HeaderText = "Addon"
+        DataGridViewDetailerHistory.Columns(4).HeaderText = "Date"
+        DataGridViewDetailerHistory.Columns(5).HeaderText = "Price"
+        DataGridViewDetailerHistory.Columns(6).HeaderText = "Commission"
+        DataGridViewDetailerHistory.Columns(7).HeaderText = "Salary"
     End Sub
 
     'Private Sub ButtonTogglePeriodFunction()

@@ -66,10 +66,6 @@
         End If
     End Sub
 
-    Private Sub DataGridViewEmployeeFontStyle()
-        DataGridFontStyleService.DataGridFontStyle(DataGridViewEmployee)
-    End Sub
-
     Private Sub ChangeHeaderOfDataGridViewEmployee()
         DataGridViewEmployee.Columns(0).HeaderText = "Employee ID"
         DataGridViewEmployee.Columns(1).HeaderText = "First Name"
@@ -102,6 +98,10 @@
 
     Private Sub UpdateBtn_Click(sender As Object, e As EventArgs) Handles UpdateBtn.Click
         UpdateEmployeeData()
+    End Sub
+
+    Private Sub DataGridViewEmployeeFontStyle()
+        DataGridFontStyleService.DataGridFontStyle(DataGridViewEmployee)
     End Sub
 
     Private Sub UpdateEmployeeData()
@@ -157,7 +157,7 @@
 
         If e.ColumnIndex = DataGridViewEmployee.Columns("actionsColumn").Index AndAlso e.RowIndex >= 0 Then
             ViewEmployeeInfoService.ResetToDefault(viewEmployeeInfo.btnCyclePeriod)
-            viewEmployeeInfo.Show()
+            viewEmployeeInfo.ShowDialog()
             ViewEmployeeInfoService.CalculateAndRefresh(viewEmployeeInfo)
         End If
 

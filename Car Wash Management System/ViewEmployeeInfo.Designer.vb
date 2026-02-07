@@ -47,6 +47,8 @@ Partial Class ViewEmployeeInfo
         TextBoxNumber = New TextBox()
         TextBoxName = New TextBox()
         Panel8 = New Panel()
+        Label6 = New Label()
+        DateTimePeriodData = New DateTimePicker()
         TextBox1 = New TextBox()
         btnCyclePeriod = New Button()
         ComboBoxGender = New ComboBox()
@@ -316,6 +318,8 @@ Partial Class ViewEmployeeInfo
         ' Panel8
         ' 
         Panel8.BorderStyle = BorderStyle.FixedSingle
+        Panel8.Controls.Add(Label6)
+        Panel8.Controls.Add(DateTimePeriodData)
         Panel8.Controls.Add(LabelTotalSalary)
         Panel8.Controls.Add(LabelSalary)
         Panel8.Controls.Add(TextBox1)
@@ -350,6 +354,27 @@ Partial Class ViewEmployeeInfo
         Panel8.Size = New Size(911, 788)
         Panel8.TabIndex = 74
         ' 
+        ' Label6
+        ' 
+        Label6.AutoSize = True
+        Label6.Font = New Font("Century Gothic", 9F)
+        Label6.ForeColor = Color.FromArgb(CByte(77), CByte(77), CByte(83))
+        Label6.Location = New Point(277, 199)
+        Label6.Name = "Label6"
+        Label6.Size = New Size(150, 17)
+        Label6.TabIndex = 131
+        Label6.Text = "Select End Date (12MN)"
+        ' 
+        ' DateTimePeriodData
+        ' 
+        DateTimePeriodData.CalendarFont = New Font("Century Gothic", 9F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        DateTimePeriodData.CustomFormat = "MM/dd/yyyy"
+        DateTimePeriodData.Format = DateTimePickerFormat.Custom
+        DateTimePeriodData.Location = New Point(192, 196)
+        DateTimePeriodData.Name = "DateTimePeriodData"
+        DateTimePeriodData.Size = New Size(83, 23)
+        DateTimePeriodData.TabIndex = 130
+        ' 
         ' TextBox1
         ' 
         TextBox1.BackColor = Color.White
@@ -369,9 +394,9 @@ Partial Class ViewEmployeeInfo
         btnCyclePeriod.FlatStyle = FlatStyle.Flat
         btnCyclePeriod.Font = New Font("Century Gothic", 8.25F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         btnCyclePeriod.ForeColor = Color.White
-        btnCyclePeriod.Location = New Point(709, 190)
+        btnCyclePeriod.Location = New Point(709, 184)
         btnCyclePeriod.Name = "btnCyclePeriod"
-        btnCyclePeriod.Size = New Size(140, 27)
+        btnCyclePeriod.Size = New Size(140, 33)
         btnCyclePeriod.TabIndex = 75
         btnCyclePeriod.Text = "Daily"
         btnCyclePeriod.UseVisualStyleBackColor = False
@@ -460,4 +485,6 @@ Partial Class ViewEmployeeInfo
     Friend WithEvents ComboBoxPosition As ComboBox
     Friend WithEvents btnCyclePeriod As Button
     Friend WithEvents TextBox1 As TextBox
+    Friend WithEvents DateTimePeriodData As DateTimePicker
+    Friend WithEvents Label6 As Label
 End Class

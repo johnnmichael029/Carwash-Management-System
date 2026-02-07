@@ -335,6 +335,7 @@
 
             DataGridViewDetailerHistory.DataSource = viewEmployeeeInfoDatabaseHelper.GetEmployeeDetailMadeFiltered(employeeIDValue, ViewEmployeeInfoService.startDate, ViewEmployeeInfoService.endDate)
 
+
         Catch ex As Exception
             errorHandler.Invoke("An error occurred during employee data retrieval: " & ex.Message)
         End Try

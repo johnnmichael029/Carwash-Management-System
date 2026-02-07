@@ -30,8 +30,13 @@
                 startDate = DateTime.Today.AddDays(-30)
                 nextPeriod = "Monthly"
 
+            Case "Monthly"
+                'If its Monthly, go to All-Period
+                viewForm.LabelSalary.Text = "Salary for the Year (₱)"
+                startDate = DateTime.Today.AddYears(-1) ' Effectively all records
+                nextPeriod = "Yearly"
             Case Else
-                'If its Monthly, go to Daily
+                'If its All-Period, go to Daily
                 viewForm.LabelSalary.Text = "Salary for the Day (₱)"
                 startDate = DateTime.Today
                 nextPeriod = "Daily"
@@ -55,6 +60,9 @@
         Dim dt As DataTable = viewEmployeeeInfoDatabaseHelper.GetEmployeeDetailMadeFiltered(empID, startDate, endDate)
         viewForm.DataGridViewDetailerHistory.DataSource = dt
 
+        viewForm.DataGridViewDetailerHistory.Columns("EmployeeSalary").DefaultCellStyle.Format = "N2"
+        viewForm.DataGridViewDetailerHistory.Columns("TotalPrice").DefaultCellStyle.Format = "N2"
+
         ' 2. Sum the Salary column by name for safety
         Dim totalSalary As Decimal = 0
         For Each row As DataRow In dt.Rows
@@ -66,4 +74,5 @@
         ' 3. Update UI
         viewForm.LabelTotalSalary.Text = totalSalary.ToString("N2")
     End Sub
+
 End Class
