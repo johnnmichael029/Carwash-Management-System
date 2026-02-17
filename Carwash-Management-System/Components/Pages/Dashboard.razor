@@ -1,0 +1,69 @@
+﻿@page "/dashboard"
+@rendermode InteractiveServer
+@inject NavigationManager NavManager
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Check the GLOBAL state, not a local variable
+        if (!AppState.IsLoggedIn)
+        {
+            NavManager.NavigateTo("/login");
+        }
+    }
+
+    // Keep your dashboard variables below
+    private decimal DailySales = 4500.50m;
+    private int CarsCompleted = 12;
+}
+<PageTitle>Dashboard</PageTitle>
+
+<div class="container mt-4">
+    <h3 class="mb-4">Operational Dashboard</h3>
+
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2 bg-primary text-white">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-uppercase mb-1">Today's Sales</div>
+                    <div class="h5 mb-0 font-weight-bold">₱@DailySales.ToString("N2")</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2 bg-success text-white">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-uppercase mb-1">Cars Completed</div>
+                    <div class="h5 mb-0 font-weight-bold">@CarsCompleted</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Recent Transactions</h6>
+        </div>
+        <div class="card-body">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Plate No.</th>
+                        <th>Service</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>ABC-1234</td>
+                        <td>Full Detail</td>
+                        <td>₱500.00</td>
+                        <td><span class="badge bg-success">Paid</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+

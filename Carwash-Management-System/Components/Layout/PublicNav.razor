@@ -1,0 +1,84 @@
+﻿@namespace Carwash_Management_System.Components.Layout
+@inherits LayoutComponentBase
+@rendermode InteractiveServer
+
+<header class="navbar-custom shadow-sm sticky-top">
+    <nav class="navbar navbar-expand-lg container">
+       <button type="button" class="navbar-toggler d-block d-lg-none border-0 p-2" 
+        @onclick="ShowMenu" 
+        @onclick:stopPropagation="true"
+        style="z-index: 10001; background: transparent;">
+    <img src="icon/menu1.png" alt="Menu" style="width: 32px; filter: brightness(0) invert(1);" />
+</button>
+
+        <div class="collapse navbar-collapse d-none d-lg-block">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link custom-link @(ActiveSection == "home-section" ? "active" : "")"
+                       href="#home-section" @onclick='() => SetActive("home-section")'>
+                        Home
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link custom-link @(ActiveSection == "services-section" ? "active" : "")"
+                       href="#services-section" @onclick='() => SetActive("services-section")'>
+                        Services
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link custom-link @(ActiveSection == "service-price-section" ? "active" : "")"
+                       href="#service-price-section" @onclick='() => SetActive("service-price-section")'>
+                        Price List
+                    </a>
+                </li>
+                 <li class="nav-item">
+                    <a class="nav-link custom-link @(ActiveSection == "about-section" ? "active" : "")"
+                       href="#about-section" @onclick='() => SetActive("about-section")'>
+                        About
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link custom-link @(ActiveSection == "contact-section" ? "active" : "")"
+                       href="#contact-section" @onclick='() => SetActive("contact-section")'>
+                        Contact
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="brand-container d-flex align-items-center">
+            <div class="text-end me-2">
+                <span class="small text-light d-block" style="font-size: .8rem;">Welcome to</span>
+                <strong class="brand-name" style="color: #00e8e9; letter-spacing: 2px; line-height: 1;">SANDIGAN</strong>
+            </div>
+            <img src="logo.png" alt="Sandigan Carwash Logo" style="height: 40px;" />
+        </div>
+    </nav>
+</header>
+<div class="nav-drawer @(collapseNavMenu ? "" : "show")">
+    <div class="p-3 d-flex justify-content-between align-items-center border-bottom border-secondary">
+        <span class="text-white fw-bold">MENU</span>
+        <button class="btn-close btn-close-white" @onclick="CloseMenu" @onclick:stopPropagation="true"></button>
+    </div>
+    <div class="d-flex flex-column p-2">
+        <a class="nav-link text-white p-3 @(ActiveSection == "home-section" ? "active" : "")" href="#home-section" 
+            @onclick='() => SetActive("home-section")' 
+            @onclick:stopPropagation="true">Home</a>
+        <a class="nav-link text-white p-3 @(ActiveSection == "services-section" ? "active" : "")" href="#services-section" 
+            @onclick='() => SetActive("services-section")' 
+            @onclick:stopPropagation="true">Services</a>
+        <a class="nav-link text-white p-3 @(ActiveSection == "service-price-section" ? "active" : "")" href="#service-price-section" 
+            @onclick='() => SetActive("service-price-section")'         
+            @onclick:stopPropagation="true">Price List</a>
+        <a class="nav-link text-white p-3 @(ActiveSection == "about-section" ? "active" : "")" href="#about-section"
+           @onclick='() => SetActive("about-section")'
+           @onclick:stopPropagation="true">About</a>
+        <a class="nav-link text-white p-3 @(ActiveSection == "contact-section" ? "active" : "")" href="#contact-section"
+           @onclick='() => SetActive("contact-section")'
+           @onclick:stopPropagation="true">Contact</a>
+    </div>
+</div>
+
+@if (!collapseNavMenu)
+{
+    <div class="drawer-backdrop" @onclick="CloseMenu"></div>
+}

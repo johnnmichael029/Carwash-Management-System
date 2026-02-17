@@ -1,0 +1,31 @@
+﻿@inherits LayoutComponentBase
+@inject NavigationManager NavManager
+
+<button class="btn btn-danger" @onclick="Logout">Logout</button>
+
+@code {
+    private void Logout()
+    {
+        AppState.IsLoggedIn = false; // Reset the state
+        NavManager.NavigateTo("/"); // Send back to landing page
+    }
+}
+
+<div class="page d-flex">
+    <aside class="sidebar bg-dark" style="width: 250px; height: 100vh; position: fixed;">
+        <NavMenu />
+    </aside>
+
+    <main class="flex-grow-1" style="margin-left: 250px;">
+        <header class="top-row px-4 d-flex justify-content-between align-items-center bg-white border-bottom shadow-sm">
+            <span class="text-muted small">Carwash Management System v1.0</span>
+            <div class="user-profile">
+                <span>Welcome, Admin</span>
+            </div>
+        </header>
+
+        <article class="content px-4 py-4">
+            @Body
+        </article>
+    </main>
+</div>
