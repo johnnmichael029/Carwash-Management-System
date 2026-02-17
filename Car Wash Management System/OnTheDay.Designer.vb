@@ -1,9 +1,9 @@
-﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()> _
+﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
 Partial Class OnTheDay
-    Inherits System.Windows.Forms.Form
+    Inherits BaseForm
 
     'Form overrides dispose to clean up the component list.
-    <System.Diagnostics.DebuggerNonUserCode()> _
+    <System.Diagnostics.DebuggerNonUserCode()>
     Protected Overrides Sub Dispose(ByVal disposing As Boolean)
         Try
             If disposing AndAlso components IsNot Nothing Then
@@ -20,7 +20,7 @@ Partial Class OnTheDay
     'NOTE: The following procedure is required by the Windows Form Designer
     'It can be modified using the Windows Form Designer.  
     'Do not modify it using the code editor.
-    <System.Diagnostics.DebuggerStepThrough()> _
+    <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         Label1 = New Label()
         DataGridViewOnTheDay = New DataGridView()
@@ -41,9 +41,12 @@ Partial Class OnTheDay
         ' 
         ' DataGridViewOnTheDay
         ' 
+        DataGridViewOnTheDay.AllowUserToAddRows = False
+        DataGridViewOnTheDay.AllowUserToResizeColumns = False
+        DataGridViewOnTheDay.AllowUserToResizeRows = False
         DataGridViewOnTheDay.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         DataGridViewOnTheDay.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
-        DataGridViewOnTheDay.BackgroundColor = SystemColors.ControlLight
+        DataGridViewOnTheDay.BackgroundColor = Color.White
         DataGridViewOnTheDay.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize
         DataGridViewOnTheDay.Location = New Point(0, 53)
         DataGridViewOnTheDay.Name = "DataGridViewOnTheDay"
@@ -64,7 +67,7 @@ Partial Class OnTheDay
         ' 
         ' OnTheDay
         ' 
-        AutoScaleDimensions = New SizeF(7F, 15F)
+        AutoScaleDimensions = New SizeF(7.0F, 15.0F)
         AutoScaleMode = AutoScaleMode.Font
         ClientSize = New Size(911, 551)
         Controls.Add(Panel1)

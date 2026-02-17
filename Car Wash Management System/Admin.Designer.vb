@@ -1,9 +1,9 @@
-﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()> _
+﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
 Partial Class Admin
-    Inherits System.Windows.Forms.Form
+    Inherits BaseForm
 
     'Form overrides dispose to clean up the component list.
-    <System.Diagnostics.DebuggerNonUserCode()> _
+    <System.Diagnostics.DebuggerNonUserCode()>
     Protected Overrides Sub Dispose(ByVal disposing As Boolean)
         Try
             If disposing AndAlso components IsNot Nothing Then
@@ -20,7 +20,7 @@ Partial Class Admin
     'NOTE: The following procedure is required by the Windows Form Designer
     'It can be modified using the Windows Form Designer.  
     'Do not modify it using the code editor.
-    <System.Diagnostics.DebuggerStepThrough()> _
+    <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         TextBoxUsername = New TextBox()
         Label1 = New Label()
@@ -187,8 +187,11 @@ Partial Class Admin
         ' 
         ' DataGridViewUsers
         ' 
+        DataGridViewUsers.AllowUserToAddRows = False
+        DataGridViewUsers.AllowUserToResizeColumns = False
+        DataGridViewUsers.AllowUserToResizeRows = False
         DataGridViewUsers.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
-        DataGridViewUsers.BackgroundColor = SystemColors.ControlLight
+        DataGridViewUsers.BackgroundColor = Color.White
         DataGridViewUsers.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize
         DataGridViewUsers.Dock = DockStyle.Fill
         DataGridViewUsers.Location = New Point(0, 0)

@@ -1,9 +1,9 @@
-﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()> _
+﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
 Partial Class Service
-    Inherits System.Windows.Forms.Form
+    Inherits BaseForm
 
     'Form overrides dispose to clean up the component list.
-    <System.Diagnostics.DebuggerNonUserCode()> _
+    <System.Diagnostics.DebuggerNonUserCode()>
     Protected Overrides Sub Dispose(ByVal disposing As Boolean)
         Try
             If disposing AndAlso components IsNot Nothing Then
@@ -20,7 +20,7 @@ Partial Class Service
     'NOTE: The following procedure is required by the Windows Form Designer
     'It can be modified using the Windows Form Designer.  
     'Do not modify it using the code editor.
-    <System.Diagnostics.DebuggerStepThrough()> _
+    <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         Panel1 = New Panel()
         DataGridViewService = New DataGridView()
@@ -55,8 +55,11 @@ Partial Class Service
         ' 
         ' DataGridViewService
         ' 
+        DataGridViewService.AllowUserToAddRows = False
+        DataGridViewService.AllowUserToResizeColumns = False
+        DataGridViewService.AllowUserToResizeRows = False
         DataGridViewService.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
-        DataGridViewService.BackgroundColor = SystemColors.ControlLight
+        DataGridViewService.BackgroundColor = Color.White
         DataGridViewService.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize
         DataGridViewService.Dock = DockStyle.Fill
         DataGridViewService.Location = New Point(0, 0)
@@ -67,7 +70,7 @@ Partial Class Service
         ' 
         ' Panel3
         ' 
-        Panel3.BackColor = Color.FromArgb(CByte(254), CByte(251), CByte(251))
+        Panel3.BackColor = Color.White
         Panel3.Controls.Add(LabelIsAdmin)
         Panel3.Controls.Add(CheckBoxAddon)
         Panel3.Controls.Add(LabelServiceID)

@@ -1,27 +1,34 @@
 ﻿
 Imports System.Drawing.Printing
+Imports System.Linq.Expressions
 Imports Microsoft.Data.SqlClient
 Public Class SalesForm
-    ' The connection string to your database.
-    Dim constr As String = "Data Source=JM\SQLEXPRESS;Initial Catalog=CarwashDB;Integrated Security=True;Trust Server Certificate=True"
-
-    ' Pass the UI controls to the management class.
-    Private ReadOnly salesDatabaseHelper As SalesDatabaseHelper
-    Private ReadOnly activityLogInDashboardService As New ActivityLogInDashboardService(constr)
-
+    Inherits BaseForm
     Public Sub New()
+
+        MyBase.New()
+
         InitializeComponent()
 
-        ' Pass the UI controls to the management class, including the new TextBoxCustomerID.
-        salesDatabaseHelper = New SalesDatabaseHelper(constr, ComboBoxPaymentMethod, TextBoxCustomerName, TextBoxCustomerID)
     End Sub
 
     Private Sub SalesForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+
+
+        SettingsService.UpdateSingleDiscountComboBox(ComboBoxDiscount)
+        SettingsService.ApplyTotalPriceSettingsOnLoad()
+        SettingsService.DiscountButtonForm(Settings.CheckBoxEnableDiscount)
+
         LoadAllPopulateUI()
         ClearFields()
         DataGridViewSalesFontStyle()
         ChangeHeaderOfDataGridViewSales()
+        SetupListViewService.SetupListViewForServices(ListViewServices, 30, 85, 85, 50)
+
     End Sub
+
+
+
     Private Sub ChangeHeaderOfDataGridViewSales()
         DataGridViewSales.Columns(0).HeaderText = "Sales ID"
         DataGridViewSales.Columns(1).HeaderText = "Customer Name"
@@ -29,113 +36,85 @@ Public Class SalesForm
         DataGridViewSales.Columns(3).HeaderText = "Addon Service"
         DataGridViewSales.Columns(4).HeaderText = "Sale Date"
         DataGridViewSales.Columns(5).HeaderText = "Payment Method"
-        DataGridViewSales.Columns(6).HeaderText = "Total Price"
+        DataGridViewSales.Columns(6).HeaderText = "Reference ID"
+        DataGridViewSales.Columns(7).HeaderText = "Detailer"
+        DataGridViewSales.Columns(8).HeaderText = "Total Price"
     End Sub
+
     Private Sub LoadAllPopulateUI()
-        salesDatabaseHelper.PopulateCustomerNames()
-        salesDatabaseHelper.PopulatePaymentMethod()
-        salesDatabaseHelper.PopulateBaseServicesForUI(ComboBoxServices)
-        salesDatabaseHelper.PopulateAddonServicesForUI(ComboBoxAddons)
-        DataGridViewSales.DataSource = salesDatabaseHelper.ViewSales()
-    End Sub
-    Private Sub AddBtn_Click(sender As Object, e As EventArgs) Handles AddBtn.Click
-        AddBtnFunction()
-    End Sub
-    Private Sub AddBtnFunction()
-        Dim baseServiceName As String = If(ComboBoxServices.SelectedIndex <> -1, ComboBoxServices.Text, String.Empty)
-        Dim addonServiceName As String = If(ComboBoxAddons.SelectedIndex <> -1, ComboBoxAddons.Text, String.Empty)
-        Dim totalPrice As Decimal = TextBoxPrice.Text
         Try
-            'The CustomerID is now retrieved directly from the textbox, which is updated via the TextChanged event.
-            Dim customerID As Integer
-            If Not Integer.TryParse(TextBoxCustomerID.Text, customerID) Then
-                MessageBox.Show("Customer not found. Please select a valid customer.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                Return
-            End If
-
-            'Validate that a base service is selected.
-            If String.IsNullOrWhiteSpace(baseServiceName) Then
-                MessageBox.Show("Please select a base service.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                Return
-            End If
-
-            'Validate that a payment method is selected.
-            If ComboBoxPaymentMethod.SelectedIndex = -1 Then
-                MessageBox.Show("Please select a payment method.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                Return
-            End If
-
-            ' Get the separate Service IDs for the base service and the addon.
-            Dim baseServiceDetails As SalesService = salesDatabaseHelper.GetServiceID(baseServiceName)
-            Dim addonServiceID As Integer? = Nothing ' Use a nullable integer for the addon service ID
-            If Not String.IsNullOrWhiteSpace(addonServiceName) Then
-                Dim addonServiceDetails As SalesService = salesDatabaseHelper.GetServiceID(addonServiceName)
-                If addonServiceDetails IsNot Nothing Then
-                    addonServiceID = addonServiceDetails.ServiceID
-                End If
-            End If
-
-
-            salesDatabaseHelper.AddSale(
-                customerID,
-                baseServiceDetails.ServiceID,
-                addonServiceID,
-                ComboBoxPaymentMethod.SelectedItem.ToString(),
-                totalPrice
-                )
-            Carwash.PopulateAllTotal()
-            DataGridViewSales.DataSource = salesDatabaseHelper.ViewSales()
-            MessageBox.Show("Sale added successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
-            AddSalesActivityLog()
-            ShowPrintPreview()
+            salesDatabaseHelper.PopulateCustomerNames(TextBoxCustomerName)
+            salesDatabaseHelper.PopulatePaymentMethod(ComboBoxPaymentMethod)
+            salesDatabaseHelper.PopulateBaseServicesForUI(ComboBoxServices)
+            employeeMangamentDatabaseHelper.PopulateDetailerForUI(ComboBoxDetailer)
+            salesDatabaseHelper.PopulateAddonServicesForUI(ComboBoxAddons)
+            DataGridViewSales.DataSource = SalesDatabaseHelper.ViewSales()
             ClearFields()
         Catch ex As Exception
-            MessageBox.Show("An error occurred while adding the sale: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            MessageBox.Show("An error occurred during form loading: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End Try
 
     End Sub
+
+    Private Sub AddBtn_Click(sender As Object, e As EventArgs) Handles AddBtn.Click
+        AddBtnFunction()
+    End Sub
+
+    Private Sub AddBtnFunction()
+
+        Dim errorHandler As Action(Of String) = Sub(message)
+                                                    ' This is the custom error logic: display the message in a modal.
+                                                    MessageBox.Show(message, "Appointment Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                                                End Sub
+        Dim success As Boolean = AddButtonFunction.AddDataToDatabase(
+            TextBoxCustomerID,
+            ComboBoxPaymentMethod,
+            TextBoxReferenceID,
+            TextBoxCheque,
+            ComboBoxDetailer,
+            TextBoxTotalPrice,
+            errorHandler
+        )
+        If success Then
+            Carwash.PopulateAllTotal()
+            Carwash.ShowNotification()
+            Carwash.NotificationLabel.Text = "New Sale Added"
+
+            AddSalesActivityLog()
+            ViewSales()
+            PrintBillInSales.ShowPrint(PrintDocumentBill)
+            ClearFields()
+        End If
+
+    End Sub
+
     Private Sub AddSalesActivityLog()
         Dim customerName As String = TextBoxCustomerName.Text
-        Dim amount As Decimal = Decimal.Parse(TextBoxPrice.Text)
+        Dim amount As Decimal = Decimal.Parse(TextBoxTotalPrice.Text)
         activityLogInDashboardService.RecordSale(customerName, amount)
     End Sub
 
+    Private Sub UpdateSalesActivityLog()
+        Dim customerName As String = TextBoxCustomerName.Text
+        activityLogInDashboardService.UpdateSale(customerName)
+    End Sub
+
     Private Sub ComboBoxServices_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ComboBoxServices.SelectedIndexChanged
-        CalculateTotalPrice()
+        CalculatePriceService.CalculateTotalPrice(ComboBoxServices, ComboBoxAddons, ComboBoxDiscount, TextBoxPrice)
     End Sub
 
     Private Sub ComboBoxAddons_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ComboBoxAddons.SelectedIndexChanged
-        CalculateTotalPrice()
-    End Sub
-    Private Sub CalculateTotalPrice()
-        Dim totalPrice As Decimal = 0.0D
-
-        If ComboBoxServices.SelectedIndex <> -1 Then
-            Dim baseServiceDetails As SalesService = salesDatabaseHelper.GetServiceID(ComboBoxServices.Text)
-            totalPrice += baseServiceDetails.Price
-        End If
-
-        If ComboBoxAddons.SelectedIndex <> -1 Then
-            Dim addonServiceDetails As SalesService = salesDatabaseHelper.GetServiceID(ComboBoxAddons.Text)
-            totalPrice += addonServiceDetails.Price
-        End If
-
-        TextBoxPrice.Text = totalPrice.ToString("N2") ' Format to 2 decimal places
+        CalculatePriceService.CalculateTotalPrice(ComboBoxServices, ComboBoxAddons, ComboBoxDiscount, TextBoxPrice)
     End Sub
 
     Private Sub TextBoxCustomerName_TextChanged(sender As Object, e As EventArgs) Handles TextBoxCustomerName.TextChanged
-        Dim customerID As Integer = salesDatabaseHelper.GetCustomerID(TextBoxCustomerName.Text)
-        If customerID > 0 Then
-            TextBoxCustomerID.Text = customerID.ToString()
-        Else
-            TextBoxCustomerID.Text = String.Empty
-        End If
+        CustomerNameTextChangedService.CustomerNameTextChanged(TextBoxCustomerID, TextBoxCustomerName)
     End Sub
 
     Private Sub ClearBtn_Click(sender As Object, e As EventArgs) Handles ClearBtn.Click
         ClearFields()
-
     End Sub
+
     Public Sub ClearFields()
         TextBoxCustomerName.Clear()
         TextBoxCustomerID.Clear()
@@ -143,81 +122,150 @@ Public Class SalesForm
         ComboBoxServices.SelectedIndex = -1
         ComboBoxAddons.SelectedIndex = -1
         ComboBoxPaymentMethod.SelectedIndex = -1
+        ComboBoxDetailer.SelectedIndex = -1
+        TextBoxReferenceID.Clear()
+        ListViewServices.Items.Clear()
+        TextBoxTotalPrice.Text = "0.00"
+        AddSaleToListView.SaleServiceList.Clear()
+        AddSaleToListView.nextServiceID = 1
     End Sub
+
     Private Sub DataGridViewSalesFontStyle()
-        DataGridViewSales.DefaultCellStyle.Font = New Font("Century Gothic", 9, FontStyle.Regular)
-        DataGridViewSales.ColumnHeadersDefaultCellStyle.Font = New Font("Century Gothic", 9, FontStyle.Bold)
+        DataGridFontStyleService.DataGridFontStyle(DataGridViewSales)
     End Sub
 
     Private Sub DataGridViewSales_CellContentClick(sender As Object, e As DataGridViewCellEventArgs) Handles DataGridViewSales.CellContentClick
-        LabelSalesID.Text = DataGridViewSales.CurrentRow.Cells(0).Value.ToString()
-        TextBoxCustomerName.Text = DataGridViewSales.CurrentRow.Cells(1).Value.ToString()
-        ComboBoxServices.Text = DataGridViewSales.CurrentRow.Cells(2).Value.ToString()
-        ComboBoxAddons.Text = DataGridViewSales.CurrentRow.Cells(3).Value.ToString()
-        TextBoxPrice.Text = DataGridViewSales.CurrentRow.Cells(6).Value.ToString()
-        ComboBoxPaymentMethod.Text = DataGridViewSales.CurrentRow.Cells(5).Value.ToString()
+        DataGridCellContentClick.HighlightSelectedRow(e, DataGridViewSales)
+
+        Dim errorHandler As Action(Of String) = Sub(message)
+                                                    ' This is the custom error logic: display the message in a modal.
+                                                    MessageBox.Show(message, "Appointment Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                                                End Sub
+        DataGridCellContentClick.GetSelectedRowData(
+           TextBoxCustomerName,
+           DataGridViewSales,
+           ComboBoxPaymentMethod,
+           TextBoxReferenceID,
+           TextBoxCheque,
+           TextBoxTotalPrice,
+           ComboBoxDetailer,
+           LabelSalesID,
+           ListViewServices,
+           errorHandler)
 
     End Sub
+
     Private Sub DataGridViewSales_CellFormatting(sender As Object, e As DataGridViewCellFormattingEventArgs) Handles DataGridViewSales.CellFormatting
-        If e.ColumnIndex = Me.DataGridViewSales.Columns("PaymentMethod").Index AndAlso e.RowIndex >= 0 Then
+        DataGridFormattingService.DataGridCellFormattingPaymentMethod(e, "PaymentMethod", DataGridViewSales)
+    End Sub
 
-            ' Get the value from the current cell.
-            Dim status As String = e.Value?.ToString()
-
-            ' Check the status and apply the correct formatting to the entire row.
-            Select Case status
-                Case "Gcash"
-                    ' Blue for confirmed appointments.
-                    e.CellStyle.BackColor = Color.LightSkyBlue
-                    e.CellStyle.ForeColor = Color.Black
-                Case "Cheque"
-                    ' Gold for appointments that are pending.
-                    e.CellStyle.BackColor = Color.Gold
-                    e.CellStyle.ForeColor = Color.Black
-                Case "Billing Contract"
-                    ' Gray for appointments that were a no-show.
-                    e.CellStyle.BackColor = Color.LightGray
-                    e.CellStyle.ForeColor = Color.Black
-                Case "Cash"
-                    ' Green for completed appointments.
-                    e.CellStyle.BackColor = Color.LightGreen
-                    e.CellStyle.ForeColor = Color.Black
-            End Select
-        End If
-
+    Private Sub DataGridViewSales_CellPainting(sender As Object, e As DataGridViewCellPaintingEventArgs) Handles DataGridViewSales.CellPainting
+        DataGridTextHighlightService.DataGridViewTextHighlight(e)
     End Sub
 
     Private Sub PrintDocumentBill_PrintPage(sender As Object, e As PrintPageEventArgs) Handles PrintDocumentBill.PrintPage
-        ShowPrintPreviewService.PrintBillInSales(e, New PrintDataInSales With {
-             .SalesID = If(DataGridViewSales.CurrentRow IsNot Nothing, Convert.ToInt32(DataGridViewSales.CurrentRow.Cells(0).Value), 0),
-             .CustomerName = TextBoxCustomerName.Text,
-             .BaseService = ComboBoxServices.Text,
-             .BaseServicePrice = If(ComboBoxServices.SelectedIndex <> -1, salesDatabaseHelper.GetServiceID(ComboBoxServices.Text).Price, 0D),
-             .AddonService = ComboBoxAddons.Text,
-             .AddonServicePrice = If(ComboBoxAddons.SelectedIndex <> -1, salesDatabaseHelper.GetServiceID(ComboBoxAddons.Text).Price, 0D),
-             .TotalPrice = Decimal.Parse(TextBoxPrice.Text),
-             .PaymentMethod = ComboBoxPaymentMethod.Text,
-             .SaleDate = DataGridViewSales.CurrentRow.Cells(4).Value
-         })
+
+        Dim currentSaleID As Integer = Convert.ToInt32(DataGridViewSales.CurrentRow.Cells(0).Value)
+        Dim saleDate As DateTime = Convert.ToDateTime(DataGridViewSales.CurrentRow.Cells(4).Value)
+
+        Dim serviceLineItems As New List(Of ServiceLineItem)()
+        If currentSaleID > 0 AndAlso salesDatabaseHelper IsNot Nothing Then
+            ' *** FIX: Now passing the connection string (Me.constr) to the Shared function ***
+            serviceLineItems = SalesDatabaseHelper.GetSaleLineItems(currentSaleID, Me.constr)
+        End If
+
+        ' 3. Populate PrintDataInSales using the comprehensive list.
+        PrintBillInSales.PrintBillInSales(e, New PrintDataInSales With {
+        .SalesID = currentSaleID,
+        .CustomerName = TextBoxCustomerName.Text,
+        .ServiceLineItems = serviceLineItems,
+        .PaymentMethod = ComboBoxPaymentMethod.Text,
+        .SaleDate = saleDate,
+        .Discount = If(ComboBoxDiscount.SelectedItem IsNot Nothing, Convert.ToDecimal(ComboBoxDiscount.SelectedItem), 0D),
+        .Detailer = ComboBoxDetailer.Text
+})
     End Sub
 
     Private Sub ValidatePrint()
         If String.IsNullOrEmpty(LabelSalesID.Text) Then
             MessageBox.Show("Please select sales from the table or add new sales to print", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         Else
-            ShowPrintPreview()
+            PrintBillInSales.ShowPrint(PrintDocumentBill)
         End If
     End Sub
+
     Private Sub PrintBillBtn_Click(sender As Object, e As EventArgs) Handles PrintBillBtn.Click
         ValidatePrint()
     End Sub
-    Public Sub ShowPrintPreview()
-        ShowPrintPreviewService.ShowPrintPreview(PrintDocumentBill)
-        Dim printPreviewDialog As New PrintPreviewDialog With {
-            .Document = PrintDocumentBill
-        }
-        printPreviewDialog.ShowDialog()
+
+    Private Sub ComboBoxPaymentMethod_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ComboBoxPaymentMethod.SelectedIndexChanged
+        PaymentMethodSelectedService.PaymentMethodChange(ComboBoxPaymentMethod, TextBoxReferenceID, TextBoxCheque)
     End Sub
+
+    Private Sub AddServiceBtn_Click(sender As Object, e As EventArgs) Handles AddServiceBtn.Click
+        AddSaleToListView.AddSaleService(ComboBoxServices, ComboBoxAddons, TextBoxPrice, ListViewServices)
+        UpdateTotalPriceService.CalculateTotalPriceInService(ListViewServices, TextBoxTotalPrice)
+    End Sub
+
+    Private Sub RemoveServiceBtn_Click(sender As Object, e As EventArgs) Handles RemoveServiceBtn.Click
+        AddSaleToListView.RemoveSelectedService(ListViewServices)
+        UpdateTotalPriceService.CalculateTotalPriceInService(ListViewServices, TextBoxTotalPrice)
+    End Sub
+
+    Private Sub UpdateBtn_Click(sender As Object, e As EventArgs) Handles UpdateBtn.Click
+        UpdateSales()
+    End Sub
+
+    Private Sub UpdateSales()
+
+        Dim localErrorHandler As Action(Of String) = Sub(message)
+                                                         MessageBox.Show(message, "Missing Data", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                                                     End Sub
+
+        Dim success As Boolean = UpdateButtonFunctiion.UpdateDataToDatabase(
+        TextBoxCustomerID,
+        LabelSalesID,
+        ComboBoxPaymentMethod,
+        TextBoxReferenceID,
+        TextBoxCheque,
+        ComboBoxDetailer,
+        TextBoxTotalPrice,
+        localErrorHandler
+    )
+
+        If success Then
+            Carwash.PopulateAllTotal()
+            Carwash.ShowNotification()
+            Carwash.NotificationLabel.Text = "Sale Updated"
+
+            UpdateSalesActivityLog()
+            MessageBox.Show("Sale updated successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            ViewSales()
+            ClearFields()
+        End If
+
+    End Sub
+
+    Private Sub ViewSales()
+        DataGridViewSales.DataSource = salesDatabaseHelper.ViewSales()
+    End Sub
+
+    Private Sub FullScreenServiceBtn_Click(sender As Object, e As EventArgs) Handles FullScreenServiceBtn.Click
+        ShowPanelDocked.ShowServicesPanelDocked(PanelServiceInfo, ListViewServices)
+    End Sub
+
+    Private Sub ComboBoxDiscount_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ComboBoxDiscount.SelectedIndexChanged
+        CalculatePriceService.CalculateTotalPrice(ComboBoxServices, ComboBoxAddons, ComboBoxDiscount, TextBoxPrice)
+    End Sub
+
+    Private Sub TextBoxSearchBar_TextChanged(sender As Object, e As EventArgs) Handles TextBoxSearchBar.TextChanged
+        SearchBarService.SearchBarFunctionForRegularSale(TextBoxSearchBar, DataGridViewSales)
+    End Sub
+
+    Private Sub TextBoxSearchBar_Click(sender As Object, e As EventArgs) Handles TextBoxSearchBar.Click
+        SearchBarTextChangeService.TextBoxSearchBar(TextBoxSearchBar, e)
+    End Sub
+
 End Class
 
 

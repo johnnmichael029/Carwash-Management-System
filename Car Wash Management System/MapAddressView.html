@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+    <title>OpenStreetMap Directions Tracker</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- FIX: Force the WebBrowser control to use the highest possible rendering engine -->
+
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+    
+
+    <!-- Leaflet CSS for map styling -->
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+
+          xintegrity="sha512-Rksm5RenBEKSK7S3c4I/HP6yYkFzYk/PqDk2sQJ8D7+XG2E4A7D2W7/B6Wl2Q2y8Q=="
+
+          crossorigin=""/>
+
+    <style>
+
+        /* Ensure the map container fills the entire body */
+
+        html, body, #mapid {
+
+            height: 100%;
+
+            width: 100%;
+
+            margin: 0;
+
+            padding: 0;
+
+        }
+
+        /* Style for the information box */
+
+        #info-box {
+
+            position: absolute;
+
+            top: 10px;
+
+            left: 10px;
+
+            z-index: 1000;
+
+            background: white;
+
+            padding: 8px 12px;
+
+            border-radius: 6px;
+
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+
+            font-family: Arial, sans-serif;
+
+            font-size: 14px;
+
+            border-left: 5px solid #0078A8;
+
+            max-width: 90%;
+
+        }
+
+        .error {
+
+            color: red;
+
+            font-weight: bold;
+
+        }
+
+        .route-info {
+
+            font-weight: bold;
+
+            color: #0078A8;
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+
+
+    <!-- Map Container -->
+
+    <div id="mapid"></div>
+
+
+
+    <!-- Info Box for communication -->
+
+    <div id="info-box">
+
+        <p id="status-message">Map initialized. Waiting for pickup and delivery addresses.</p>
+
+    </div>
+
+
+
+    <!-- Leaflet JavaScript library -->
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+
+            xintegrity="sha512-XQoYMqMTK8LvdxFBcFM105U7S9kO2LgM8yD28b1yCg4sYcR9d4D2M1qT2x1p28="
+
+            crossorigin=""></script>
+
+
+
+    <script>
+
+        var map = L.map('mapid').setView([40.7128, -74.0060], 12); // Default to NYC
+
+        var markerPickup;
+
+        var markerCarwash;
+
+        var routeLayer;
+
+
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+
+            maxZoom: 19,
+
+            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+
+        }).addTo(map);
+
+
+
+        var statusMessage = document.getElementById('status-message');
+
+
+
+        // Helper function for making compatible XHR requests
+
+        function makeXhrRequest(url, callback) {
+
+            var xhr = new XMLHttpRequest();
+
+            xhr.open('GET', url, true);
+
+            
+
+            xhr.onreadystatechange = function() {
+
+                if (xhr.readyState === 4) {
+
+                    if (xhr.status === 200) {
+
+                        try {
+
+                            var data = JSON.parse(xhr.responseText);
+
+                            callback(null, data);
+
+                        } catch (e) {
+
+                            callback('JSON parsing failed: ' + e.message, null);
+
+                        }
+
+                    } else {
+
+                        callback('HTTP Error: ' + xhr.status + ' ' + xhr.statusText, null);
+
+                    }
+
+                }
+
+            };
+
+            xhr.onerror = function() {
+
+                callback('Network error during request.', null);
+
+            };
+
+            xhr.send();
+
+        }
+
+
+
+        /**
+
+         * Geocodes a single address using Nominatim.
+
+         */
+
+        function geocodeAddress(address, callback) {
+
+            var nominatimUrl = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(address) + '&limit=1';
+
+            
+
+            makeXhrRequest(nominatimUrl, function(error, data) {
+
+                if (error) {
+
+                    callback(error, null);
+
+                    return;
+
+                }
+
+                
+
+                if (data && data.length > 0) {
+
+                    callback(null, {
+
+                        lat: parseFloat(data[0].lat),
+
+                        lon: parseFloat(data[0].lon),
+
+                        name: data[0].display_name
+
+                    });
+
+                } else {
+
+                    callback('Address not found.', null);
+
+                }
+
+            });
+
+        }
+
+        
+
+        /**
+
+         * Draws the route between two coordinates using OSRM.
+
+         */
+
+        function drawRoute(coordA, coordB) {
+
+            // coordA and coordB are {lat, lon} objects
+
+            var routeUrl = 'https://router.project-osrm.org/route/v1/driving/' + 
+
+                coordA.lon + ',' + coordA.lat + ';' + 
+
+                coordB.lon + ',' + coordB.lat + 
+
+                '?geometries=geojson&overview=full';
+
+
+
+            makeXhrRequest(routeUrl, function(error, data) {
+
+                if (error || data.code !== 'Ok') {
+
+                    statusMessage.textContent = 'Error calculating route: ' + (error || data.message || 'Unknown error.');
+
+                    statusMessage.classList.add('error');
+
+                    return;
+
+                }
+
+
+
+                if (routeLayer) {
+
+                    map.removeLayer(routeLayer);
+
+                }
+
+
+
+                var geojson = data.routes[0].geometry;
+
+                var duration = data.routes[0].duration; // in seconds
+
+                var distance = data.routes[0].distance; // in meters
+
+
+
+                // Convert distance to km and duration to minutes
+
+                var distanceKm = (distance / 1000).toFixed(1);
+
+                var durationMin = Math.round(duration / 60);
+
+
+
+                // Draw the line
+
+                routeLayer = L.geoJSON(geojson, {
+
+                    style: {
+
+                        color: '#0078A8',
+
+                        weight: 6,
+
+                        opacity: 0.7
+
+                    }
+
+                }).addTo(map);
+
+
+
+                // Zoom to fit the route
+
+                map.fitBounds(routeLayer.getBounds());
+
+                
+
+                statusMessage.innerHTML = 'Route found. <span class="route-info">Distance: ' + distanceKm + ' km, Duration: ' + durationMin + ' min.</span>';
+
+            });
+
+        }
+
+        
+
+        /**
+
+         * The VB.NET application calls this function to update the map route.
+
+         * @param {string} pickupAddress The starting pickup address.
+
+         * @param {string} carwashAddress The destination car wash address.
+
+         */
+
+        window.updateMapRoute = function(pickupAddress, carwashAddress) {
+
+            statusMessage.textContent = 'Searching for Pickup and Carwash locations...';
+
+            statusMessage.classList.remove('error');
+
+
+
+            // Clear previous markers and route
+
+            if (markerPickup) map.removeLayer(markerPickup);
+
+            if (markerCarwash) map.removeLayer(markerCarwash);
+
+            if (routeLayer) map.removeLayer(routeLayer);
+
+
+
+            var pickupCoord, carwashCoord;
+
+            var errors = [];
+
+            
+
+            // --- Step 1: Geocode Pickup Address ---
+
+            geocodeAddress(pickupAddress, function(error, coord) {
+
+                if (error) {
+
+                    errors.push('Pickup Address: ' + error);
+
+                } else {
+
+                    pickupCoord = coord;
+
+                    markerPickup = L.marker([coord.lat, coord.lon], {
+
+                        icon: L.divIcon({className: 'leaflet-div-icon-pickup', html: '<div style="background-color: red; width: 15px; height: 15px; border-radius: 50%; border: 2px solid white;"></div>'})
+
+                    }).addTo(map).bindPopup('<b>A: Pickup Location</b><br>' + pickupAddress);
+
+                }
+
+
+
+                // --- Step 2: Geocode Carwash Address (nested callback for sequential execution) ---
+
+                geocodeAddress(carwashAddress, function(error, coord) {
+
+                    if (error) {
+
+                        errors.push('Carwash Address: ' + error);
+
+                    } else {
+
+                        carwashCoord = coord;
+
+                        markerCarwash = L.marker([coord.lat, coord.lon], {
+
+                            icon: L.divIcon({className: 'leaflet-div-icon-carwash', html: '<div style="background-color: blue; width: 15px; height: 15px; border-radius: 50%; border: 2px solid white;"></div>'})
+
+                        }).addTo(map).bindPopup('<b>B: Carwash/Delivery Location</b><br>' + carwashAddress);
+
+                    }
+
+
+
+                    // --- Step 3: Handle Results ---
+
+                    if (errors.length > 0) {
+
+                        statusMessage.innerHTML = 'Could not find one or both addresses:<br>' + errors.join('<br>');
+
+                        statusMessage.classList.add('error');
+
+                        // Zoom back to default view if both fail, otherwise center on the one that worked
+
+                        if (pickupCoord && !carwashCoord) {
+
+                            map.setView([pickupCoord.lat, pickupCoord.lon], 14);
+
+                        } else if (carwashCoord && !pickupCoord) {
+
+                            map.setView([carwashCoord.lat, carwashCoord.lon], 14);
+
+                        } else {
+
+                            map.setView([14.5995, 120.9842], 12); // Default to Manila, Philippines
+
+                        }
+
+                    } else {
+
+                        // Both coordinates found, draw the route
+
+                        drawRoute(pickupCoord, carwashCoord);
+
+                    }
+
+                });
+
+            });
+
+        };
+
+        
+
+        // Set default view to Manila, Philippines for relevance
+
+        map.setView([14.5995, 120.9842], 12); 
+
+    </script>
+
+</body>
+
+</html>

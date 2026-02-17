@@ -1,0 +1,57 @@
+﻿
+Public Class BaseForm
+    Inherits Form
+
+    Protected constr As String = "Data Source=JM\SQLEXPRESS;Initial Catalog=CarwashDB;Integrated Security=True;Trust Server Certificate=True"
+    Protected ReadOnly reservationDatabaseHelper As ReservationDatabaseHelper
+    Protected ReadOnly onTheDayDatabaseHelper As OnTheDayDatabaseHelper
+    Protected ReadOnly activityLogInDashboardService As ActivityLogInDashboardService
+    Protected ReadOnly appointmentManagementDatabaseHelper As AppointmentManagementDatabaseHelper
+    Protected ReadOnly salesDatabaseHelper As SalesDatabaseHelper
+    Protected ReadOnly activityLogManagement As ActivityLogManagementDatabaseHelper
+    Protected ReadOnly adminDatabaseHelper As AdminDatabaseHelper
+    Protected ReadOnly carwashDatabaseHelper As CarwashDatabaseHelper
+    Protected ReadOnly contractsDatabaseHelper As ContractsDatabaseHelper
+    Protected ReadOnly customerInformationDatabaseHelper As CustomerInformationDatabaseHelper
+    Protected ReadOnly listofActivityLogInDashboardDatabaseHelper As ListofActivityLogInDashboardDatabaseHelper
+    Protected ReadOnly activityLogService As ActivityLogInDashboardService
+    Protected ReadOnly dashboardDatabaseHelper As DashboardDatabaseHelper
+    Protected ReadOnly HistoryDatabaseHelper As HistoryDatabaseHelper
+    Protected ReadOnly salesAnalyticsDatabaseHelper As SalesAnalyticsDatabaseHelper
+    Protected ReadOnly chartDatabaseHelper As ChartDatabaseHelper
+    Protected ReadOnly serviceDatabaseHelper As ServiceDatabaseHelper
+    Protected ReadOnly dataGridFormattingService As DataGridFormattingService
+    Protected ReadOnly DataGridCellContentClick As DataGridCellContentClick
+    Protected ReadOnly employeeMangamentDatabaseHelper As EmployeeMangamentDatabaseHelper
+    Protected ReadOnly pickupManagementDatabaseHelper As PickupManagementDatabaseHelper
+    Protected ReadOnly LoginDatabaseHelper As LoginDatabaseHelper
+    Protected ReadOnly viewEmployeeeInfoDatabaseHelper As ViewEmployeeInfoDatabaseHelper
+    Public Sub New()
+        ' Add any initialization after the InitializeComponent() call.
+        reservationDatabaseHelper = New ReservationDatabaseHelper(constr)
+        onTheDayDatabaseHelper = New OnTheDayDatabaseHelper(constr)
+        activityLogInDashboardService = New ActivityLogInDashboardService(constr)
+        appointmentManagementDatabaseHelper = New AppointmentManagementDatabaseHelper(constr)
+        salesDatabaseHelper = New SalesDatabaseHelper(constr)
+        activityLogManagement = New ActivityLogManagementDatabaseHelper(constr)
+        adminDatabaseHelper = New AdminDatabaseHelper(constr)
+        carwashDatabaseHelper = New CarwashDatabaseHelper(constr)
+        contractsDatabaseHelper = New ContractsDatabaseHelper(constr)
+        listofActivityLogInDashboardDatabaseHelper = New ListofActivityLogInDashboardDatabaseHelper(constr)
+        activityLogService = New ActivityLogInDashboardService(constr)
+        dashboardDatabaseHelper = New DashboardDatabaseHelper(constr)
+        customerInformationDatabaseHelper = New CustomerInformationDatabaseHelper(constr)
+        HistoryDatabaseHelper = New HistoryDatabaseHelper(constr)
+        salesAnalyticsDatabaseHelper = New SalesAnalyticsDatabaseHelper(constr)
+        chartDatabaseHelper = New ChartDatabaseHelper(constr)
+        serviceDatabaseHelper = New ServiceDatabaseHelper(constr)
+        dataGridFormattingService = New DataGridFormattingService()
+        DataGridCellContentClick = New DataGridCellContentClick()
+        employeeMangamentDatabaseHelper = New EmployeeMangamentDatabaseHelper(constr)
+        pickupManagementDatabaseHelper = New PickupManagementDatabaseHelper(constr)
+        LoginDatabaseHelper = New LoginDatabaseHelper(constr)
+        viewEmployeeeInfoDatabaseHelper = New ViewEmployeeInfoDatabaseHelper(constr)
+
+    End Sub
+
+End Class

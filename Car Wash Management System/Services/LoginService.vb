@@ -2,6 +2,10 @@
 Imports System.Text
 
 Public Class LoginService
+    Private Shared constr As String
+    Public Sub New(connectionString As String)
+        constr = connectionString
+    End Sub
     Public Shared Function HashPassword(password As String) As (String, String)
         Dim saltBytes(15) As Byte
 #Disable Warning SYSLIB0023
@@ -23,4 +27,12 @@ Public Class LoginService
         Dim hashedInput As String = Convert.ToBase64String(hashBytes)
         Return hashedInput = storedHash
     End Function
+    Public Shared Sub DoesHaveAnyAccount(username As String, password As String, isAdmin As Boolean)
+        Dim adminDatabaseHelper As New AdminDatabaseHelper(constr)
+        If Not LoginDatabaseHelper.DoesAnyAccountExist() Then
+            'Dim setupForm As New Admin()
+            'setupForm.ShowDialog()
+            AdminDatabaseHelper.AddUsers(username, password, isAdmin)
+        End If
+    End Sub
 End Class

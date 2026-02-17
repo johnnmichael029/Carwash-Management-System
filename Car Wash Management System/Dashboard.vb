@@ -5,34 +5,46 @@ Imports Microsoft.Data.SqlClient
 
 
 Public Class Dashboard
-    Dim constr As String = "Data Source=JM\SQLEXPRESS;Initial Catalog=CarwashDB;Integrated Security=True;Trust Server Certificate=True"
-    Private ReadOnly dashboardDatabaseHelper As New DashboardDatabaseHelper(constr, TextBoxCustomerName)
-    Private ReadOnly listofActivityLogInDashboardDatabaseHelper As ListofActivityLogInDashboardDatabaseHelper
-    Private ReadOnly salesForm As New SalesForm
-    Private ReadOnly activityLogService As ActivityLogInDashboardService
+    Inherits BaseForm
+
     Private isMonthlyView As Boolean = False
     Private isYearlyView As Boolean = False
+    Private currentSearchTerm As String = String.Empty
+
     Public Sub New()
+        MyBase.New()
+
         ' This call is required by the designer.
         InitializeComponent()
-        ' Add any initialization after the InitializeComponent() call.\
-        dashboardDatabaseHelper = New DashboardDatabaseHelper(constr, TextBoxCustomerName)
-        listofActivityLogInDashboardDatabaseHelper = New ListofActivityLogInDashboardDatabaseHelper(constr)
-        activityLogService = New ActivityLogInDashboardService(constr)
+        ' Add any initialization after the InitializeComponent() call.
+
+
+
     End Sub
     Public Sub Dashboard_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        SettingsService.UpdateSingleDiscountComboBox(Me.ComboBoxDiscount)
+        SettingsService.DiscountButtonForm(Settings.CheckBoxEnableDiscount)
+        SettingsService.ApplyTotalPriceSettingsOnLoad()
         LoadSalesChart()
         LoadLatestTransaction()
         DataGridViewLatestTransactionFontStyle()
         ChangeHeaderOfDataGridViewLatestTransaction()
         LoadAllPopulateUI()
         ClearFieldsOfSales()
+        PopulateAllListInComboBoxFilter()
+        SetupListViewService.SetupListViewForServices(ListViewServices, 30, 85, 85, 50)
+        SetupListViewService.SetupListViewForVehicles(ListViewVehicles, 30, 135, 85)
+        DisplayNextSalesID()
     End Sub
 
     Private Sub LoadAllPopulateUI()
-        dashboardDatabaseHelper.PopulateCustomerNames()
-        dashboardDatabaseHelper.PopulateBaseServicesForUI(ComboBoxServices)
-        dashboardDatabaseHelper.PopulateAddonServicesForUI(ComboBoxAddons)
+        SalesDatabaseHelper.PopulateCustomerNames(TextBoxCustomerName)
+        SalesDatabaseHelper.PopulateBaseServicesForUI(ComboBoxServices)
+        salesDatabaseHelper.PopulateAddonServicesForUI(ComboBoxAddons)
+        employeeMangamentDatabaseHelper.PopulateDetailerForUI(ComboBoxDetailer)
+
+
+
 
     End Sub
     Private Sub LoadSalesChart()
@@ -41,16 +53,16 @@ Public Class Dashboard
         Dim xAxisTitle As String
 
         If isYearlyView Then
-            chartData = dashboardDatabaseHelper.GetYearlySales()
+            chartData = DashboardDatabaseHelper.GetYearlySales()
             chartTitle = "Yearly Sales"
             xAxisTitle = "Year"
         ElseIf isMonthlyView Then
-            chartData = dashboardDatabaseHelper.GetMonthlySales()
+            chartData = DashboardDatabaseHelper.GetMonthlySales()
             chartTitle = "Monthly Sales"
             xAxisTitle = "Month"
         Else
-            chartData = dashboardDatabaseHelper.GetWeeklySales()
-            chartTitle = "Weekly Sales"
+            chartData = DashboardDatabaseHelper.GetDailySales()
+            chartTitle = "Daily Sales"
             xAxisTitle = "Day"
         End If
         Dim salesChartForm As New SalesChartService(chartData, chartTitle, xAxisTitle) With {
@@ -66,62 +78,92 @@ Public Class Dashboard
 
     Private Sub ButtonToggleChart_Click(sender As Object, e As EventArgs) Handles ButtonToggleChart.Click
         'Toggle On and Off
-        isMonthlyView = Not isMonthlyView And Not isYearlyView
-        isYearlyView = Not isYearlyView And Not isMonthlyView
         If isYearlyView Then
-            ButtonToggleChart.Text = "Weekly Sales"
+            ' Currently Daily view
+            isYearlyView = False
+            isMonthlyView = False
+            ' Day is the implicit default (Else)
+            ButtonToggleChart.Text = "Daily Sales"
+
         ElseIf isMonthlyView Then
+            ' Currently Yearly view
+            isMonthlyView = False
+            isYearlyView = True
             ButtonToggleChart.Text = "Yearly Sales"
         Else
+            ' Currently Monthly view
+            isMonthlyView = True
+            isYearlyView = False
             ButtonToggleChart.Text = "Monthly Sales"
         End If
+
         LoadSalesChart()
     End Sub
     Private Sub TextBoxSearchBar_Click(sender As Object, e As EventArgs) Handles TextBoxSearchBar.Click
-        TextBoxSearchBar.Text = ""
+        SearchBarTextChangeService.TextBoxSearchBar(TextBoxSearchBar, e)
     End Sub
     Private Sub TextBoxSearchBar_TextChanged(sender As Object, e As EventArgs) Handles TextBoxSearchBar.TextChanged
         SearchBarFunction()
     End Sub
     Private Sub SearchBarFunction()
-        If String.IsNullOrWhiteSpace(TextBoxSearchBar.Text) Then
-            Dim salesData As DataTable = dashboardDatabaseHelper.ViewSalesData()
-            DataGridViewLatestTransaction.DataSource = salesData
-        Else
-            Dim salesData As DataTable = dashboardDatabaseHelper.GetListInSearchBar(Trim(TextBoxSearchBar.Text))
-            DataGridViewLatestTransaction.DataSource = salesData
-        End If
+        SearchBarService.SearchBarFunction(TextBoxSearchBar, DataGridViewLatestTransaction, ComboBoxFilter)
     End Sub
     Private Sub ChangeHeaderOfDataGridViewLatestTransaction()
         DataGridViewLatestTransaction.Columns("SalesID").HeaderText = "Sales ID"
         DataGridViewLatestTransaction.Columns("CustomerName").HeaderText = "Customer Name"
-        DataGridViewLatestTransaction.Columns("BaseServiceName").HeaderText = "Base Service"
-        DataGridViewLatestTransaction.Columns("AddonServiceName").HeaderText = "Addon Service"
-        DataGridViewLatestTransaction.Columns("SaleDate").HeaderText = "Sale Date"
-        DataGridViewLatestTransaction.Columns("PaymentMethod").HeaderText = "Payment Method"
-        DataGridViewLatestTransaction.Columns("TotalPrice").HeaderText = "Total Price (₱)"
+        DataGridViewLatestTransaction.Columns(2).HeaderText = "Base Service"
+        DataGridViewLatestTransaction.Columns(3).HeaderText = "Addon Service"
+        DataGridViewLatestTransaction.Columns(4).HeaderText = "Sale Date"
+        DataGridViewLatestTransaction.Columns(5).HeaderText = "Payment Method"
+        DataGridViewLatestTransaction.Columns(6).HeaderText = "Payment Reference"
+        DataGridViewLatestTransaction.Columns(7).HeaderText = "Total Price (₱)"
     End Sub
+
+    Private Sub DataGridViewLatestTransaction_CellPainting(sender As Object, e As DataGridViewCellPaintingEventArgs) Handles DataGridViewLatestTransaction.CellPainting
+        DataGridTextHighlightService.DataGridViewTextHighlight(e)
+    End Sub
+
+    Private Sub DataGridViewLatestTransaction_CellFormatting(sender As Object, e As DataGridViewCellFormattingEventArgs) Handles DataGridViewLatestTransaction.CellFormatting
+        DataGridFormattingService.DataGridCellFormattingPaymentMethod(e, "PaymentMethod", DataGridViewLatestTransaction)
+
+    End Sub
+
     Private Sub DataGridViewLatestTransactionFontStyle()
-        DataGridViewLatestTransaction.DefaultCellStyle.Font = New Font("Century Gothic", 9, FontStyle.Regular)
-        DataGridViewLatestTransaction.ColumnHeadersDefaultCellStyle.Font = New Font("Century Gothic", 9, FontStyle.Bold)
+        DataGridFontStyleService.DataGridFontStyle(DataGridViewLatestTransaction)
     End Sub
+
     Private Sub LoadLatestTransaction()
         Dim salesData As DataTable = dashboardDatabaseHelper.ViewSalesData()
         DataGridViewLatestTransaction.DataSource = salesData
     End Sub
 
     Private Sub AddCustomerBtn_Click(sender As Object, e As EventArgs) Handles AddCustomerBtn.Click
-        AddCustomer()
+        AddCustomerInformation()
     End Sub
-    Private Sub AddCustomer()
-        If String.IsNullOrWhiteSpace(TextBoxName.Text) Or String.IsNullOrWhiteSpace(TextBoxNumber.Text) Or String.IsNullOrWhiteSpace(TextBoxEmail.Text) Or String.IsNullOrWhiteSpace(TextBoxPlateNumber.Text) Then
-            MessageBox.Show("Please fill in all fields", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-            Return
+    Public Sub AddCustomerInformation()
+
+        Dim localErrorHandler As Action(Of String) = Sub(message)
+                                                         MessageBox.Show(message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                                                     End Sub
+
+        Dim success As Boolean = AddButtonFunction.AddDataToDatabase(
+        TextBoxName,
+        TextBoxLastName,
+        TextBoxNumber,
+        TextBoxEmail,
+        TextBoxAddress,
+        TextBoxBarangay,
+        customerInformationDatabaseHelper,
+        localErrorHandler
+    )
+
+        If success Then
+            Carwash.PopulateAllTotal()
+
+            NewCustomerActivityLog()
+            ClearFieldsOfCustomer()
         End If
-        dashboardDatabaseHelper.AddCustomer(TextBoxName.Text.Trim(), TextBoxNumber.Text, TextBoxEmail.Text.Trim(), TextBoxAddress.Text.Trim(), TextBoxPlateNumber.Text.Trim())
-        Carwash.PopulateAllTotal()
-        NewCustomerActivityLog()
-        ClearFieldsOfCustomer()
+
     End Sub
     Private Sub NewCustomerActivityLog()
         Dim customerName As String = TextBoxName.Text
@@ -133,58 +175,38 @@ Public Class Dashboard
         TextBoxEmail.Clear()
         TextBoxAddress.Clear()
         TextBoxPlateNumber.Clear()
+        ListViewVehicles.Items.Clear()
+        AddVehicleToListView.VehicleList.Clear()
+        AddSaleToListView.nextServiceID = 1
     End Sub
 
     Private Sub AddSalesBtn_Click(sender As Object, e As EventArgs) Handles AddSalesBtn.Click
         AddBtnFunction()
     End Sub
     Private Sub AddBtnFunction()
-        Dim baseServiceName As String = If(ComboBoxServices.SelectedIndex <> -1, ComboBoxServices.Text, String.Empty)
-        Dim addonServiceName As String = If(ComboBoxAddons.SelectedIndex <> -1, ComboBoxAddons.Text, String.Empty)
-        Dim totalPrice As Decimal = TextBoxPrice.Text
-        Try
-            'The CustomerID is now retrieved directly from the textbox, which is updated via the TextChanged event.
-            Dim customerID As Integer
-            If Not Integer.TryParse(TextBoxCustomerID.Text, customerID) Then
-                MessageBox.Show("Customer not found. Please select a valid customer.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                Return
-            End If
-
-            'Validate that a base service is selected.
-            If String.IsNullOrWhiteSpace(baseServiceName) Then
-                MessageBox.Show("Please select a base service.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                Return
-            End If
-
-            'Validate that a payment method is selected.
-            If ComboBoxPaymentMethod.SelectedIndex = -1 Then
-                MessageBox.Show("Please select a payment method.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                Return
-            End If
-            Dim baseServiceDetails As SalesInDashboardService = dashboardDatabaseHelper.GetServiceID(baseServiceName)
-            Dim addonServiceID As Integer? = Nothing ' Use a nullable integer for the addon service ID
-            If Not String.IsNullOrWhiteSpace(addonServiceName) Then
-                Dim addonServiceDetails As SalesInDashboardService = dashboardDatabaseHelper.GetServiceID(addonServiceName)
-                If addonServiceDetails IsNot Nothing Then
-                    addonServiceID = addonServiceDetails.ServiceID
-                End If
-            End If
-            dashboardDatabaseHelper.AddSale(
-                customerID,
-                baseServiceDetails.ServiceID,
-                addonServiceID,
-                ComboBoxPaymentMethod.SelectedItem.ToString(),
-                totalPrice
-                )
+        Dim errorHandler As Action(Of String) = Sub(message)
+                                                    ' This is the custom error logic: display the message in a modal.
+                                                    MessageBox.Show(message, "Appointment Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                                                End Sub
+        Dim success As Boolean = AddButtonFunction.AddDataToDatabase(
+            TextBoxCustomerID,
+            ComboBoxPaymentMethod,
+            TextBoxReferenceID,
+            TextBoxCheque,
+            ComboBoxDetailer,
+            TextBoxTotalPrice,
+            errorHandler
+        )
+        If success Then
             Carwash.PopulateAllTotal()
             LoadLatestTransaction()
-            MessageBox.Show("Sale added successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+
             AddSalesActivityLog()
             ShowPrintPreview()
+            DisplayNextSalesID()
             ClearFieldsOfSales()
-        Catch ex As Exception
-            MessageBox.Show("An error occurred while adding the sale: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-        End Try
+        End If
+
 
     End Sub
     Private Sub ClearFieldsOfSales()
@@ -194,64 +216,61 @@ Public Class Dashboard
         ComboBoxAddons.SelectedIndex = -1
         TextBoxPrice.Text = 0.00D.ToString("N2")
         ComboBoxPaymentMethod.SelectedIndex = -1
+        TextBoxReferenceID.Clear()
+        TextBoxCheque.Clear()
+        ComboBoxDetailer.SelectedIndex = -1
+        ListViewServices.Items.Clear()
+        TextBoxTotalPrice.Text = "0.00"
+        AddSaleToListView.SaleServiceList.Clear()
+        AddSaleToListView.nextServiceID = 1
     End Sub
     Public Sub ShowPrintPreview()
-        DashboardDatabaseHelper.ShowPrintPreview(PrintDocumentBill)
+        PrintBillInSales.ShowPrintPreview(PrintDocumentBill)
         Dim printPreviewDialog As New PrintPreviewDialog With {
             .Document = PrintDocumentBill
         }
         printPreviewDialog.ShowDialog()
     End Sub
     Private Sub PrintDocumentBill_PrintPage(sender As Object, e As PrintPageEventArgs) Handles PrintDocumentBill.PrintPage
-        DashboardDatabaseHelper.PrintBillInDashboard(e, New PrintDataInDashboardService With {
-             .SalesID = If(DataGridViewLatestTransaction.Rows.Count > 0, Convert.ToInt32(DataGridViewLatestTransaction.Rows(0).Cells("SalesID").Value), 0),
-             .CustomerName = TextBoxCustomerName.Text,
-             .BaseService = ComboBoxServices.Text,
-             .BaseServicePrice = If(ComboBoxServices.SelectedIndex <> -1, dashboardDatabaseHelper.GetServiceID(ComboBoxServices.Text).Price, 0D),
-             .AddonService = ComboBoxAddons.Text,
-             .AddonServicePrice = If(ComboBoxAddons.SelectedIndex <> -1, dashboardDatabaseHelper.GetServiceID(ComboBoxAddons.Text).Price, 0D),
-             .TotalPrice = Decimal.Parse(TextBoxPrice.Text),
-             .PaymentMethod = ComboBoxPaymentMethod.Text,
-             .SaleDate = DateTime.Now
-         })
-    End Sub
+        Dim currentSaleID = Convert.ToInt32(LabelSalesID.Text)
+        Dim saleDate = Convert.ToDateTime(DataGridViewLatestTransaction.CurrentRow.Cells(4).Value)
+        Dim serviceLineItems As New List(Of ServiceLineItem)()
+        If currentSaleID > 0 AndAlso SalesDatabaseHelper IsNot Nothing Then
+            ' *** FIX: Now passing the connection string (Me.constr) to the Shared function ***
+            serviceLineItems = SalesDatabaseHelper.GetSaleLineItems(currentSaleID, Me.constr)
+        End If
 
+        ' *** PASSING ReferenceID and TotalPrice to PrintBillInSales ***
+        Dim totalPriceDecimal As Decimal = 0
+        If Not Decimal.TryParse(TextBoxTotalPrice.Text, totalPriceDecimal) Then
+            ' Should not happen if AddBtnFunction validates input, but provides a fallback
+            totalPriceDecimal = 0D
+        End If
+
+        PrintBillInSales.PrintBillInSales(e, New PrintDataInSales With {
+        .SalesID = currentSaleID,
+        .CustomerName = TextBoxCustomerName.Text,
+        .ServiceLineItems = serviceLineItems,
+        .PaymentMethod = ComboBoxPaymentMethod.Text,
+        .SaleDate = saleDate,
+        .Discount = If(ComboBoxDiscount.SelectedItem IsNot Nothing, Convert.ToDecimal(ComboBoxDiscount.SelectedItem), 0D),
+        .Detailer = ComboBoxDetailer.Text
+        })
+    End Sub
     Private Sub AddSalesActivityLog()
         Dim customerName As String = TextBoxCustomerName.Text
         Dim amount As Decimal = Decimal.Parse(TextBoxPrice.Text)
         activityLogService.RecordSale(customerName, amount)
     End Sub
     Private Sub ComboBoxServices_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ComboBoxServices.SelectedIndexChanged
-        CalculateTotalPrice()
+        CalculatePriceService.CalculateTotalPrice(ComboBoxServices, ComboBoxAddons, ComboBoxDiscount, TextBoxPrice)
     End Sub
 
     Private Sub ComboBoxAddons_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ComboBoxAddons.SelectedIndexChanged
-        CalculateTotalPrice()
+        CalculatePriceService.CalculateTotalPrice(ComboBoxServices, ComboBoxAddons, ComboBoxDiscount, TextBoxPrice)
     End Sub
-    Private Sub CalculateTotalPrice()
-        Dim totalPrice As Decimal = 0.0D
-
-        If ComboBoxServices.SelectedIndex <> -1 Then
-            Dim baseServiceDetails As SalesInDashboardService = dashboardDatabaseHelper.GetServiceID(ComboBoxServices.Text)
-            totalPrice += baseServiceDetails.Price
-        End If
-
-        If ComboBoxAddons.SelectedIndex <> -1 Then
-            Dim addonServiceDetails As SalesInDashboardService = dashboardDatabaseHelper.GetServiceID(ComboBoxAddons.Text)
-            totalPrice += addonServiceDetails.Price
-        End If
-
-        TextBoxPrice.Text = totalPrice.ToString("N2") ' Format to 2 decimal places
-    End Sub
-
-    'Get CustomerID when typing in the CustomerName textbox
     Private Sub TextBoxCustomerName_TextChanged(sender As Object, e As EventArgs) Handles TextBoxCustomerName.TextChanged
-        Dim customerID As Integer = dashboardDatabaseHelper.GetCustomerID(TextBoxCustomerName.Text)
-        If customerID > 0 Then
-            TextBoxCustomerID.Text = customerID.ToString()
-        Else
-            TextBoxCustomerID.Text = String.Empty
-        End If
+        CustomerNameTextChangedService.CustomerNameTextChanged(TextBoxCustomerID, TextBoxCustomerName)
     End Sub
     Private Sub ClearFieldsBtn_Click(sender As Object, e As EventArgs) Handles ClearFieldsBtn.Click
         ClearFieldsOfCustomer()
@@ -259,6 +278,98 @@ Public Class Dashboard
 
     Private Sub ClearBtn_Click(sender As Object, e As EventArgs) Handles ClearBtn.Click
         ClearFieldsOfSales()
+    End Sub
+
+    Private Sub PopulateAllListInComboBoxFilter()
+        ComboBoxFilter.Items.Clear()
+        ComboBoxFilter.Items.Add("Filter")
+        ComboBoxFilter.Items.Add("Base Service")
+        ComboBoxFilter.Items.Add("Addon Service")
+        ComboBoxFilter.Items.Add("All Columns")
+        ComboBoxFilter.SelectedIndex = 0
+    End Sub
+
+    Private Sub AddVehicleBtn_Click(sender As Object, e As EventArgs) Handles AddVehicleBtn.Click
+        AddVehicleToListView.AddVehicleFunction(ListViewVehicles, TextBoxPlateNumber, TextBoxVehicle)
+    End Sub
+
+    Private Sub RemoveVehicleBtn_Click(sender As Object, e As EventArgs) Handles RemoveVehicleBtn.Click
+        AddVehicleToListView.RemoveSelectedVehicle(ListViewVehicles)
+    End Sub
+
+    Private Sub RemoveSelectedVehicle()
+        If ListViewVehicles.SelectedItems.Count = 0 Then
+            MessageBox.Show("Please select a vehicle from the list to remove.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return
+        End If
+
+        ' Get the selected ListViewItem
+        Dim selectedItem As ListViewItem = ListViewVehicles.SelectedItems(0)
+
+        ' Get the Plate Number, which is used as the unique key to match the object in VehicleList
+        Dim plateNumberToRemove As String = selectedItem.Text
+
+        ' 1. Remove the vehicle from the local tracking list (VehicleList)
+        Dim vehiclesRemovedCount As Integer = AddVehicleToListView.VehicleList.RemoveAll(Function(v)
+                                                                                             Return v.PlateNumber.Equals(plateNumberToRemove, StringComparison.OrdinalIgnoreCase)
+                                                                                         End Function)
+
+        If vehiclesRemovedCount > 0 Then
+            ' 2. Remove the item from the visual ListView control
+            ListViewVehicles.Items.Remove(selectedItem)
+            MessageBox.Show($"Vehicle with Plate {plateNumberToRemove} removed successfully from the list.", "Removed", MessageBoxButtons.OK, MessageBoxIcon.Information)
+        Else
+            MessageBox.Show("Could not find the selected vehicle in the internal list. Please try again.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End If
+    End Sub
+
+    Private Sub RemoveServiceBtn_Click(sender As Object, e As EventArgs) Handles RemoveServiceBtn.Click
+        AddSaleToListView.RemoveSelectedService(ListViewServices)
+        UpdateTotalPriceService.CalculateTotalPriceInService(ListViewServices, TextBoxTotalPrice)
+    End Sub
+
+    Private Sub AddServiceBtn_Click(sender As Object, e As EventArgs) Handles AddServiceBtn.Click
+        AddSaleToListView.AddSaleService(ComboBoxServices, ComboBoxAddons, TextBoxPrice, ListViewServices)
+        UpdateTotalPriceService.CalculateTotalPriceInService(ListViewServices, TextBoxTotalPrice)
+    End Sub
+
+    Private Sub ComboBoxPaymentMethod_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ComboBoxPaymentMethod.SelectedIndexChanged
+        PaymentMethodSelectedService.PaymentMethodChange(ComboBoxPaymentMethod, TextBoxReferenceID, TextBoxCheque)
+    End Sub
+
+    Private Sub ViewLatestSales()
+        DataGridViewLatestTransaction.DataSource = SalesDatabaseHelper.ViewSales()
+    End Sub
+
+    Private Sub DisplayNextSalesID()
+        ' 1. Get the next available ID from the database
+        Dim nextId As Integer = DashboardDatabaseHelper.GetNextSalesID()
+
+        If nextId > 0 Then
+            LabelSalesID.Text = nextId.ToString()
+        Else
+            LabelSalesID.Text = "Sales ID: ERROR"
+        End If
+    End Sub
+
+    Private Sub FullScreenVehicleBtn_Click(sender As Object, e As EventArgs) Handles FullScreenVehicleBtn.Click
+        ShowPanelDocked.ShowVehiclePanelDocked(PanelVehicleInfo, ListViewVehicles)
+    End Sub
+
+    Private Sub FullScreenServiceBtn_Click(sender As Object, e As EventArgs) Handles FullScreenServiceBtn.Click
+        ShowPanelDocked.ShowServicesPanelDocked(PanelServiceInfo, ListViewServices)
+    End Sub
+
+    Private Sub PanelMontlySales_Paint(sender As Object, e As PaintEventArgs) Handles PanelMontlySales.Paint
+
+    End Sub
+
+    Private Sub ComboBoxDiscount_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ComboBoxDiscount.SelectedIndexChanged
+        CalculatePriceService.CalculateTotalPrice(ComboBoxServices, ComboBoxAddons, ComboBoxDiscount, TextBoxPrice)
+    End Sub
+
+    Private Sub DataGridViewLatestTransaction_CellContentClick(sender As Object, e As DataGridViewCellEventArgs) Handles DataGridViewLatestTransaction.CellContentClick
+
     End Sub
 End Class
 

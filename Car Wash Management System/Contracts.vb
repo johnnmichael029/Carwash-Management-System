@@ -3,265 +3,163 @@ Imports System.Drawing.Printing
 
 
 Public Class Contracts
-
-
-    Dim constr As String = "Data Source=JM\SQLEXPRESS;Initial Catalog=CarwashDB;Integrated Security=True;Trust Server Certificate=True"
-    Private ReadOnly billingContractsManagement As BillingContractsManagement
-    Dim activityLogInDashboardService As New ActivityLogInDashboardService(constr)
+    Inherits BaseForm
 
     Public Sub New()
+        MyBase.New()
         ' This call is required by the designer.
         InitializeComponent()
 
         ' Initialize the data access layer
-        billingContractsManagement = New BillingContractsManagement(constr)
     End Sub
     Private Sub Contracts_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        SettingsService.UpdateSingleDiscountComboBox(Me.ComboBoxDiscount)
+        SettingsService.DiscountButtonForm(Settings.CheckBoxEnableDiscount)
+        SettingsService.ApplyTotalPriceSettingsOnLoad()
         PopulateUIForContract()
         DataGridViewFontStyle()
         ChangeHeaderOfDataGridViewContracts()
+        SetupListViewService.SetupListViewForServices(ListViewServices, 30, 85, 85, 50)
+        contractsDatabaseHelper.UpdateTheStatusOfContractWhenExpired()
     End Sub
-    Private Sub AddContractBtn_Click(sender As Object, e As EventArgs) Handles AddContractBtn.Click
 
+    Private Sub AddContractBtn_Click(sender As Object, e As EventArgs) Handles AddContractBtn.Click
         AddBillingContracts()
     End Sub
+
     Private Sub ChangeHeaderOfDataGridViewContracts()
-        DataGridView1.Columns(0).HeaderText = "Contract ID"
-        DataGridView1.Columns(1).HeaderText = "Customer Name"
-        DataGridView1.Columns(2).HeaderText = "Base Service"
-        DataGridView1.Columns(3).HeaderText = "Addon Service"
-        DataGridView1.Columns(4).HeaderText = "Start Date"
-        DataGridView1.Columns(5).HeaderText = "End Date"
-        DataGridView1.Columns(6).HeaderText = "Billing Frequency"
-        DataGridView1.Columns(7).HeaderText = "Payment Method"
-        DataGridView1.Columns(8).HeaderText = "Price"
-        DataGridView1.Columns(9).HeaderText = "Contract Status"
+        DataGridViewContract.Columns(0).HeaderText = "ID"
+        DataGridViewContract.Columns(1).HeaderText = "Name"
+        DataGridViewContract.Columns(2).HeaderText = "Base"
+        DataGridViewContract.Columns(3).HeaderText = "Addon"
+        DataGridViewContract.Columns(4).HeaderText = "Start"
+        DataGridViewContract.Columns(5).HeaderText = "End"
+        DataGridViewContract.Columns(6).HeaderText = "Billing"
+        DataGridViewContract.Columns(7).HeaderText = "Payment"
+        DataGridViewContract.Columns(8).HeaderText = "Reference"
+        DataGridViewContract.Columns(9).HeaderText = "Price"
+        DataGridViewContract.Columns(10).HeaderText = "Contract Status"
     End Sub
+
     Private Sub AddContractActivityLog()
         Dim customerName As String = TextBoxCustomerName.Text
         activityLogInDashboardService.AddNewContract(customerName)
     End Sub
+
     Private Sub AddBillingContracts()
-        Dim salesAdded As String = "Sales Added"
-        Dim baseServiceName As String = If(ComboBoxServices.SelectedIndex <> -1, ComboBoxServices.Text, String.Empty)
-        Dim addonServiceName As String = If(ComboBoxAddon.SelectedIndex <> -1, ComboBoxAddon.Text, String.Empty)
 
-        Try
-            ' The CustomerID is now retrieved directly from the textbox
-            Dim customerID As Integer
-            If Not Integer.TryParse(TextBoxCustomerID.Text, customerID) Then
-                MessageBox.Show("Customer not found. Please select a valid customer.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                Return
-            End If
+        Dim localErrorHandler As Action(Of String) = Sub(message)
+                                                         MessageBox.Show(message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                                                     End Sub
 
-            'Validate if the base service is selected
-            If String.IsNullOrWhiteSpace(baseServiceName) Then
-                MessageBox.Show("Please select a base service.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                Return
-            End If
+        Dim success As Boolean = AddButtonFunction.AddDataToDatabase(
+        TextBoxCustomerID,
+        DateTimePickerStartDate,
+        DateTimePickerEndDate,
+        ComboBoxBillingFrequency,
+        ComboBoxPaymentMethod,
+        TextBoxReferenceID,
+        TextBoxCheque,
+        TextBoxTotalPrice,
+        ComboBoxContractStatus,
+        ComboBoxDetailer,
+        contractsDatabaseHelper, ' Your ContractsDatabaseHelper instance
+        localErrorHandler
+    )
 
-            ' Validate if the end date is not equal to today
-            If Me.DateTimePickerEndDate.Value.Date = DateTime.Now.Date Then
-                MessageBox.Show("Date end must not equal to DateTime today", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                Return
-            End If
-
-            ' Validate if billing frequency is selected
-            If String.IsNullOrWhiteSpace(ComboBoxBillingFrequency.Text) Then
-                MessageBox.Show("Please select a billing frequency.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                Return
-            End If
-
-            'Validate if payment method is selected
-            If ComboBoxPaymentMethod.SelectedIndex = -1 Then
-                MessageBox.Show("Please select a payment method.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                Return
-            End If
-
-            ' Validate if contract status is selected
-            If String.IsNullOrWhiteSpace(ComboBoxContractStatus.Text) Then
-                MessageBox.Show("Please select a contract status.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                Return
-            End If
-
-            'Validate if the price is decimal
-            Dim totalPrice As Decimal
-            If Not Decimal.TryParse(TextBoxPrice.Text, totalPrice) Then
-                MessageBox.Show("Please enter a valid price.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                Return
-            End If
-
-            ' Get the separate Service IDs for the base service and the addon.
-            Dim baseServiceDetails As ContractsService = billingContractsManagement.GetServiceDetails(baseServiceName)
-            Dim addonServiceID As Integer? = Nothing ' Use a nullable integer for the addon service ID
-            If Not String.IsNullOrWhiteSpace(addonServiceName) Then
-                Dim addonServiceDetails As ContractsService = billingContractsManagement.GetServiceDetails(addonServiceName)
-                If addonServiceDetails IsNot Nothing Then
-                    addonServiceID = addonServiceDetails.ServiceID
-                End If
-            End If
-
-            billingContractsManagement.AddContract(
-                customerID,
-                baseServiceDetails.ServiceID,
-                addonServiceID,
-                If(DateTimePickerEndDate.Checked, CType(DateTimePickerEndDate.Value, Date?), Nothing),
-                ComboBoxBillingFrequency.Text,
-                ComboBoxPaymentMethod.Text,
-                totalPrice,
-                ComboBoxContractStatus.Text
-            )
+        If success Then
             Carwash.PopulateAllTotal()
-            LabelSales.Text = salesAdded
             Carwash.NotificationLabel.Text = "New Contract Added"
             Carwash.ShowNotification()
-            DataGridView1.DataSource = billingContractsManagement.ViewContracts()
-            MessageBox.Show("Contract added successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            DataGridViewContract.DataSource = contractsDatabaseHelper.ViewContracts()
+
             AddContractActivityLog()
-            ShowPrint()
             ClearFields()
-        Catch ex As Exception
-            MessageBox.Show("An error occurred while adding the sale: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-        End Try
+        End If
     End Sub
 
     Private Sub DataGridViewFontStyle()
-        DataGridView1.DefaultCellStyle.Font = New Font("Century Gothic", 9, FontStyle.Regular)
-        DataGridView1.ColumnHeadersDefaultCellStyle.Font = New Font("Century Gothic", 9, FontStyle.Bold)
+        DataGridFontStyleService.DataGridFontStyle(DataGridViewContract)
     End Sub
+
     Private Sub PopulateUIForContract()
         Try
             ' Populate UI components using the data returned from the management class
-            Dim customerNames As DataTable = billingContractsManagement.GetAllCustomerNames()
-            Dim customerNamesCollection As New AutoCompleteStringCollection()
-            For Each row As DataRow In customerNames.Rows
-                customerNamesCollection.Add(row("Name").ToString())
-            Next
-            TextBoxCustomerName.AutoCompleteCustomSource = customerNamesCollection
-            TextBoxCustomerName.AutoCompleteMode = AutoCompleteMode.SuggestAppend
-            TextBoxCustomerName.AutoCompleteSource = AutoCompleteSource.CustomSource
-
-            Dim baseServices As DataTable = billingContractsManagement.GetBaseServices()
-            ComboBoxServices.DataSource = baseServices
-            ComboBoxServices.DisplayMember = "ServiceName"
-            ComboBoxServices.ValueMember = "ServiceID"
-            ComboBoxServices.DropDownStyle = ComboBoxStyle.DropDownList
-
-            Dim addonServices As DataTable = billingContractsManagement.GetAddonServices()
-            ComboBoxAddon.DataSource = addonServices
-            ComboBoxAddon.DisplayMember = "ServiceName"
-            ComboBoxAddon.ValueMember = "ServiceID"
-            ComboBoxAddon.DropDownStyle = ComboBoxStyle.DropDownList
-            ComboBoxAddon.Text = ""
-
-            ' This part is not in the management class anymore, as it's static UI logic
-            ComboBoxPaymentMethod.Items.AddRange({"Cash", "Gcash", "Cheque"})
-            ComboBoxPaymentMethod.SelectedIndex = 0
-
-            ' Load existing contracts into the DataGridView when the form loads.
-            DataGridView1.DataSource = billingContractsManagement.ViewContracts()
+            salesDatabaseHelper.PopulateCustomerNames(TextBoxCustomerName)
+            salesDatabaseHelper.PopulatePaymentMethod(ComboBoxPaymentMethod)
+            salesDatabaseHelper.PopulateBaseServicesForUI(ComboBoxServices)
+            employeeMangamentDatabaseHelper.PopulateDetailerForUI(ComboBoxDetailer)
+            salesDatabaseHelper.PopulateAddonServicesForUI(ComboBoxAddons)
+            DataGridViewContract.DataSource = contractsDatabaseHelper.ViewContracts()
             ClearFields()
         Catch ex As Exception
             MessageBox.Show("An error occurred during form loading: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End Try
 
     End Sub
+
     Private Sub ComboBoxServices_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ComboBoxServices.SelectedIndexChanged
-        CalculateTotalPrice()
+        CalculatePriceService.CalculateTotalPrice(ComboBoxServices, ComboBoxAddons, ComboBoxDiscount, TextBoxPrice)
     End Sub
 
-    Private Sub ComboBoxAddon_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ComboBoxAddon.SelectedIndexChanged
-        CalculateTotalPrice()
-    End Sub
-
-    Private Sub CalculateTotalPrice()
-        Dim totalPrice As Decimal = 0.0D
-
-        If ComboBoxServices.SelectedIndex <> -1 Then
-            Dim baseServiceDetails As ContractsService = billingContractsManagement.GetServiceDetails(ComboBoxServices.Text)
-            totalPrice += baseServiceDetails.Price
-        End If
-
-        If ComboBoxAddon.SelectedIndex <> -1 Then
-            Dim addonServiceDetails As ContractsService = billingContractsManagement.GetServiceDetails(ComboBoxAddon.Text)
-            totalPrice += addonServiceDetails.Price
-        End If
-
-        TextBoxPrice.Text = totalPrice.ToString("N2") ' Format to 2 decimal places
+    Private Sub ComboBoxAddon_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ComboBoxAddons.SelectedIndexChanged
+        CalculatePriceService.CalculateTotalPrice(ComboBoxServices, ComboBoxAddons, ComboBoxDiscount, TextBoxPrice)
     End Sub
 
     Private Sub TextBoxCustomerName_TextChanged(sender As Object, e As EventArgs) Handles TextBoxCustomerName.TextChanged
-        Try
-            Dim customerID As Integer = billingContractsManagement.GetCustomerID(TextBoxCustomerName.Text)
-            If customerID > 0 Then
-                TextBoxCustomerID.Text = customerID.ToString()
-            Else
-                TextBoxCustomerID.Text = String.Empty ' Clear the ID if no match is found.
-            End If
-        Catch ex As Exception
-            MessageBox.Show("An error occurred while retrieving customer ID: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-            TextBoxCustomerID.Text = String.Empty
-        End Try
+        CustomerNameTextChangedService.CustomerNameTextChanged(TextBoxCustomerID, TextBoxCustomerName)
     End Sub
 
     Private Sub UpdateContractBtn_Click(sender As Object, e As EventArgs) Handles UpdateContractBtn.Click
-        UpdateContractActivityLog()
+
         ContractUpdated()
-        ClearFields()
+
     End Sub
+
     Private Sub ContractUpdated()
-        Try
-            Dim contractID As Integer
-            Dim customerID As Integer
-            Dim price As Decimal
+        Dim localErrorHandler As Action(Of String) = Sub(message)
+                                                         MessageBox.Show(message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                                                     End Sub
 
-            If Not Integer.TryParse(LabelContractID.Text, contractID) Or Not Integer.TryParse(TextBoxCustomerID.Text, customerID) Or Not Decimal.TryParse(TextBoxPrice.Text, price) Then
-                MessageBox.Show("Please select customer from contract Table to update!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                Return
-            End If
+        Dim success As Boolean = UpdateButtonFunctiion.UpdateDataToDatabase(
+        LabelContractID,
+        TextBoxCustomerID,
+        DateTimePickerStartDate,
+        DateTimePickerEndDate,
+        ComboBoxBillingFrequency,
+        ComboBoxPaymentMethod,
+        TextBoxReferenceID,
+        TextBoxCheque,
+        ComboBoxContractStatus,
+        ComboBoxDetailer,
+        TextBoxTotalPrice,
+        contractsDatabaseHelper,
+        localErrorHandler
+    )
 
-            Dim baseServiceDetails As ContractsService = billingContractsManagement.GetServiceDetails(ComboBoxServices.Text)
-            Dim addonServiceID As Integer? = Nothing
-            If ComboBoxAddon.SelectedIndex <> -1 Then
-                Dim addonServiceDetails As ContractsService = billingContractsManagement.GetServiceDetails(ComboBoxAddon.Text)
-                If addonServiceDetails IsNot Nothing Then
-                    addonServiceID = addonServiceDetails.ServiceID
-                End If
-            End If
-
-            Dim endDate As Date? = If(DateTimePickerEndDate.Checked, CType(DateTimePickerEndDate.Value, Date?), Nothing)
-
-            billingContractsManagement.UpdateContract(
-                contractID,
-                customerID,
-                baseServiceDetails.ServiceID,
-                addonServiceID,
-                DateTimePickerStartDate.Value,
-                endDate,
-                ComboBoxBillingFrequency.Text,
-                ComboBoxPaymentMethod.Text,
-                price,
-                ComboBoxContractStatus.Text
-            )
+        If success Then
+            Carwash.PopulateAllTotal()
             Carwash.NotificationLabel.Text = "Contract Updated"
             Carwash.ShowNotification()
-            MessageBox.Show("Contract updated successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
-            DataGridView1.DataSource = billingContractsManagement.ViewContracts()
-        Catch ex As Exception
-            MessageBox.Show("An error occurred while updating the contract: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-        End Try
+
+            DataGridViewContract.DataSource = ContractsDatabaseHelper.ViewContracts()
+            UpdateContractActivityLog()
+            ClearFields()
+        End If
     End Sub
+
     Private Sub UpdateContractActivityLog()
         Dim customerName As String = TextBoxCustomerName.Text
         Dim newStatus As String = ComboBoxContractStatus.Text
         activityLogInDashboardService.UpdateContractStatus(customerName, newStatus)
     End Sub
+
     Public Sub ClearFields()
         ' Clear all input fields
         TextBoxCustomerID.Clear()
         TextBoxCustomerName.Clear()
         ComboBoxServices.SelectedIndex = -1
-        ComboBoxAddon.SelectedIndex = -1
+        ComboBoxAddons.SelectedIndex = -1
         DateTimePickerStartDate.Value = DateTime.Now
         DateTimePickerEndDate.Value = DateTime.Now
         DateTimePickerEndDate.Checked = False
@@ -270,302 +168,121 @@ Public Class Contracts
         TextBoxPrice.Clear()
         ComboBoxContractStatus.SelectedIndex = -1
         LabelContractID.Text = String.Empty
-        LabelSales.Text = String.Empty
+        TextBoxReferenceID.Clear()
+        TextBoxCheque.Clear()
+        TextBoxTotalPrice.Text = "0.00"
+        ComboBoxDetailer.SelectedIndex = -1
+
+        ListViewServices.Items.Clear()
+        AddSaleToListView.ContractServiceList.Clear()
+        AddSaleToListView.nextServiceID = 1
     End Sub
 
-    'Private Sub DeleteContractBtn_Click(sender As Object, e As EventArgs) Handles DeleteContractBtn.Click
-    '    billingContractsManagement.DeleteContract(LabelContractID.Text)
-    '    DataGridView1.DataSource = billingContractsManagement.ViewContracts()
-    '    ClearFields()
-    'End Sub
+    Private Sub DataGridViewContract_CellContentClick(sender As Object, e As DataGridViewCellEventArgs) Handles DataGridViewContract.CellContentClick
+        ' but sometimes helps ensure a selection is made on cell click.
+        DataGridCellContentClick.HighlightSelectedRow(e, DataGridViewContract)
 
-    Private Sub DataGridView1_CellContentClick(sender As Object, e As DataGridViewCellEventArgs) Handles DataGridView1.CellContentClick
-        LabelContractID.Text = DataGridView1.CurrentRow.Cells(0).Value.ToString()
-        TextBoxCustomerName.Text = DataGridView1.CurrentRow.Cells(1).Value.ToString()
-        ComboBoxServices.Text = DataGridView1.CurrentRow.Cells(2).Value.ToString()
-        If Not IsDBNull(DataGridView1.CurrentRow.Cells(3).Value) Then
-            ComboBoxAddon.Text = DataGridView1.CurrentRow.Cells(3).Value.ToString()
-        Else
-            ComboBoxAddon.SelectedIndex = -1 ' Handle cases where the addon is null
-        End If
 
-        DateTimePickerStartDate.Value = Convert.ToDateTime(DataGridView1.CurrentRow.Cells(4).Value)
-        If Not IsDBNull(DataGridView1.CurrentRow.Cells(5).Value) Then
-            DateTimePickerEndDate.Value = Convert.ToDateTime(DataGridView1.CurrentRow.Cells(5).Value)
-            DateTimePickerEndDate.Checked = True
-        Else
-            DateTimePickerEndDate.Checked = False
-        End If
-        ComboBoxBillingFrequency.Text = DataGridView1.CurrentRow.Cells(6).Value.ToString()
-        ComboBoxPaymentMethod.Text = DataGridView1.CurrentRow.Cells(7).Value.ToString()
-        TextBoxPrice.Text = DataGridView1.CurrentRow.Cells(8).Value.ToString()
-        ComboBoxContractStatus.Text = DataGridView1.CurrentRow.Cells(9).Value.ToString()
-
-        ' Update the customer ID based on the selected customer name.
-        TextBoxCustomerName_TextChanged(TextBoxCustomerName, New EventArgs())
+        Dim errorHandler As Action(Of String) = Sub(message)
+                                                    ' This is the custom error logic: display the message in a modal.
+                                                    MessageBox.Show(message, "Appointment Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                                                End Sub
+        DataGridCellContentClick.GetSelectedRowData(
+           DataGridViewContract,
+           TextBoxCustomerName,
+           DateTimePickerStartDate,
+           DateTimePickerEndDate,
+           ComboBoxBillingFrequency,
+           ComboBoxPaymentMethod,
+           TextBoxReferenceID,
+           TextBoxCheque,
+           TextBoxTotalPrice,
+           ComboBoxContractStatus,
+           ComboBoxDetailer,
+           LabelContractID,
+           ListViewServices,
+           errorHandler
+        )
     End Sub
-    Private Sub DataGridView1_CellFormatting(sender As Object, e As DataGridViewCellFormattingEventArgs) Handles DataGridView1.CellFormatting
-        If e.ColumnIndex = Me.DataGridView1.Columns("PaymentMethod").Index AndAlso e.RowIndex >= 0 Then
-            ' Get the value from the current cell.
-            Dim status As String = e.Value?.ToString()
 
-            ' Check the status and apply the correct formatting to the entire row.
-            Select Case status
-                Case "Gcash"
-                    e.CellStyle.BackColor = Color.LightSkyBlue
-                    e.CellStyle.ForeColor = Color.Black
-                Case "Cheque"
-                    e.CellStyle.BackColor = Color.Gold
-                    e.CellStyle.ForeColor = Color.Black
-                Case "Cash"
-                    e.CellStyle.BackColor = Color.LightGreen
-                    e.CellStyle.ForeColor = Color.Black
-            End Select
-        End If
-        If e.ColumnIndex = Me.DataGridView1.Columns("ContractStatus").Index AndAlso e.RowIndex >= 0 Then
-            ' Get the value from the current cell.
-            Dim status As String = e.Value?.ToString()
-
-            ' Check the status and apply the correct formatting to the entire row.
-            Select Case status
-                Case "Active"
-                    e.CellStyle.BackColor = Color.LightSkyBlue
-                    e.CellStyle.ForeColor = Color.Black
-                Case "Cancelled"
-                    e.CellStyle.BackColor = Color.Salmon
-                    e.CellStyle.ForeColor = Color.Black
-                Case "Expired"
-                    e.CellStyle.BackColor = Color.YellowGreen
-                    e.CellStyle.ForeColor = Color.Black
-            End Select
-        End If
+    Private Sub DataGridViewContract_CellFormatting(sender As Object, e As DataGridViewCellFormattingEventArgs) Handles DataGridViewContract.CellFormatting
+        DataGridFormattingService.DataGridCellFormattingPaymentMethod(e, "PaymentMethod", DataGridViewContract)
+        DataGridFormattingService.DataGridCellFormattingStatus(e, "ContractStatus", DataGridViewContract)
 
     End Sub
+
+    Private Sub DataGridViewContract_CellPainting(sender As Object, e As DataGridViewCellPaintingEventArgs) Handles DataGridViewContract.CellPainting
+        DataGridTextHighlightService.DataGridViewTextHighlight(e)
+    End Sub
+
     Private Sub ClearFieldsBtn_Click(sender As Object, e As EventArgs) Handles ClearFieldsBtn.Click
         ClearFields()
-    End Sub
-
-    Private Sub Panel3_Paint(sender As Object, e As PaintEventArgs) Handles Panel3.Paint
-
     End Sub
 
     Private Sub PrintBillBtn_Click(sender As Object, e As EventArgs) Handles PrintBillBtn.Click
         ValidatePrint()
     End Sub
+
     Private Sub ValidatePrint()
         If String.IsNullOrEmpty(LabelContractID.Text) Then
             MessageBox.Show("Please select contract from the table or add a new contract to print", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         Else
-            ShowPrint()
+            PrintBillInContractsService.ShowPrint(PrintDocumentBill)
         End If
     End Sub
-    Public Sub ShowPrint()
-        ShowPrintService.ShowPrintPreviewService(PrintDocumentBill)
-        Dim printPreviewDialog As New PrintPreviewDialog With {
-            .Document = PrintDocumentBill
-        }
-        printPreviewDialog.ShowDialog()
-    End Sub
+
     Private Sub PrintDocumentBill_PrintPage(sender As Object, e As PrintPageEventArgs) Handles PrintDocumentBill.PrintPage
-        PrintBillInContracts.PrintBillInContractsService(e, New PrintDataInContractsService With {
-           .ContractID = If(DataGridView1.CurrentRow IsNot Nothing, Convert.ToInt32(DataGridView1.CurrentRow.Cells(0).Value), 0),
+        Dim currentContractID As Integer = Convert.ToInt32(DataGridViewContract.CurrentRow.Cells(0).Value)
+        Dim startDate As DateTime = Convert.ToDateTime(DataGridViewContract.CurrentRow.Cells(4).Value)
+
+        Dim serviceLineItems As New List(Of ServiceLineItem)()
+        If currentContractID > 0 AndAlso contractsDatabaseHelper IsNot Nothing Then
+            ' *** FIX: Now passing the connection string (Me.constr) to the Shared function ***
+            serviceLineItems = ContractsDatabaseHelper.GetSaleLineItems(currentContractID, Me.constr)
+        End If
+
+        PrintBillInContractsService.PrintBillInContractsService(e, New PrintDataInContractsService With {
+           .ContractID = currentContractID,
            .CustomerName = TextBoxCustomerName.Text,
-           .BaseService = ComboBoxServices.Text,
-           .BaseServicePrice = If(ComboBoxServices.SelectedIndex <> -1, billingContractsManagement.GetServiceDetails(ComboBoxServices.Text).Price, 0D),
-           .AddonService = ComboBoxAddon.Text,
-           .AddonServicePrice = If(ComboBoxAddon.SelectedIndex <> -1, billingContractsManagement.GetServiceDetails(ComboBoxAddon.Text).Price, 0D),
+           .ServiceLineItems = serviceLineItems,
            .BillingFrequency = ComboBoxBillingFrequency.Text,
-           .TotalPrice = Decimal.Parse(TextBoxPrice.Text),
            .PaymentMethod = ComboBoxPaymentMethod.Text,
-           .SaleDate = DataGridView1.CurrentRow.Cells(4).Value,
+           .SaleDate = DataGridViewContract.CurrentRow.Cells(4).Value,
            .StartDate = DateTimePickerStartDate.Value,
-           .EndDate = If(DateTimePickerEndDate.Checked, CType(DateTimePickerEndDate.Value, Date?), Nothing),
-           .ContractStatus = ComboBoxContractStatus.Text
+           .EndDate = DateTimePickerEndDate.Value,
+           .ContractStatus = ComboBoxContractStatus.Text,
+           .Discount = If(ComboBoxDiscount.SelectedItem IsNot Nothing, Convert.ToDecimal(ComboBoxDiscount.SelectedItem), 0D),
+           .Detailer = ComboBoxDetailer.Text
        })
     End Sub
-End Class
 
-Public Class BillingContractsManagement
-    Private ReadOnly constr As String
-    Private ReadOnly printData As PrintDataInContractsService
-    Public Sub New(connectionString As String)
-        Me.constr = connectionString
+    Private Sub AddServiceBtn_Click(sender As Object, e As EventArgs) Handles AddServiceBtn.Click
+        AddSaleToListView.AddSaleServiceInContractForm(ComboBoxServices, ComboBoxAddons, TextBoxPrice, ListViewServices)
+        UpdateTotalPriceService.CalculateTotalPriceInService(ListViewServices, TextBoxTotalPrice)
     End Sub
 
-    Public Sub AddContract(customerID As Integer, serviceID As Integer, addonServiceID As Integer?, endDate As Date?, billingFrequency As String, paymentMethod As String, price As Decimal, contractStatus As String)
-        Using con As New SqlConnection(constr)
-            con.Open()
-            ' SQL query to insert a new contract. Using parameters to prevent SQL injection.
-            Dim insertQuery As String = "INSERT INTO ContractsTable (CustomerID, ServiceID, AddonServiceID, StartDate, EndDate, BillingFrequency, PaymentMethod, Price, ContractStatus) VALUES (@CustomerID, @ServiceID, @AddonServiceID, @StartDate, @EndDate, @BillingFrequency, @PaymentMethod, @Price, @ContractStatus)"
-            Using cmd As New SqlCommand(insertQuery, con)
-                cmd.Parameters.AddWithValue("@CustomerID", customerID)
-                cmd.Parameters.AddWithValue("@ServiceID", serviceID)
-                cmd.Parameters.AddWithValue("@StartDate", DateTime.Now)
-
-                ' Handle the nullable EndDate parameter
-                If endDate.HasValue Then
-                    cmd.Parameters.AddWithValue("@EndDate", endDate.Value)
-                Else
-                    cmd.Parameters.AddWithValue("@EndDate", DBNull.Value)
-                End If
-                If addonServiceID.HasValue Then
-                    cmd.Parameters.AddWithValue("@AddonServiceID", addonServiceID.Value)
-                Else
-                    cmd.Parameters.AddWithValue("@AddonServiceID", DBNull.Value) ' Insert NULL if no addon is selected
-                End If
-                cmd.Parameters.AddWithValue("@BillingFrequency", billingFrequency)
-                cmd.Parameters.AddWithValue("@PaymentMethod", paymentMethod)
-                cmd.Parameters.AddWithValue("@Price", price)
-                cmd.Parameters.AddWithValue("@ContractStatus", contractStatus)
-                cmd.ExecuteNonQuery()
-            End Using
-        End Using
+    Private Sub RemoveServiceBtn_Click(sender As Object, e As EventArgs) Handles RemoveServiceBtn.Click
+        AddSaleToListView.RemoveSelectedServiceInContractForm(ListViewServices)
+        UpdateTotalPriceService.CalculateTotalPriceInService(ListViewServices, TextBoxTotalPrice)
     End Sub
 
-    ''' <summary>
-    ''' Retrieves all billing contracts from the database and returns them as a DataTable.
-    ''' </summary>
-    Public Function ViewContracts() As DataTable
-        Dim dt As New DataTable()
-        Using con As New SqlConnection(constr)
-            con.Open()
-            ' SQL query to select all contracts.
-            Dim selectQuery As String = "SELECT b.ContractID, c.Name AS CustomerName, s.ServiceName AS BaseService, sa.ServiceName AS AddonService, b.StartDate, b.EndDate, b.BillingFrequency, b.PaymentMethod, b.Price, b.ContractStatus
-                                         FROM ContractsTable b
-                                         INNER JOIN CustomersTable c ON b.CustomerID = c.CustomerID
-                                         INNER JOIN ServicesTable s ON b.ServiceID = s.ServiceID
-                                         LEFT JOIN ServicesTable sa ON b.AddonServiceID = sa.ServiceID ORDER BY b.ContractID DESC"
-            Using cmd As New SqlCommand(selectQuery, con)
-                Using adapter As New SqlDataAdapter(cmd)
-                    adapter.Fill(dt)
-                End Using
-            End Using
-        End Using
-        Return dt
-    End Function
-
-    ''' <summary>
-    ''' Updates an existing billing contract in the database.
-    ''' </summary>
-    Public Sub UpdateContract(contractID As Integer, customerID As Integer, serviceID As Integer, addonServiceID As Integer?, startDate As Date, endDate As Date?, billingFrequency As String, paymentMethod As String, price As Decimal, contractStatus As String)
-        Using con As New SqlConnection(constr)
-            con.Open()
-            ' SQL query to update a contract.
-            Dim updateQuery As String = "UPDATE ContractsTable SET CustomerID = @CustomerID, ServiceID = @ServiceID, AddonServiceID = @AddonServiceID, StartDate = @StartDate, EndDate = @EndDate, BillingFrequency = @BillingFrequency, PaymentMethod = @PaymentMethod, Price = @Price, ContractStatus = @ContractStatus WHERE ContractID = @ContractID"
-            Using cmd As New SqlCommand(updateQuery, con)
-                cmd.Parameters.AddWithValue("@ContractID", contractID)
-                cmd.Parameters.AddWithValue("@CustomerID", customerID)
-                cmd.Parameters.AddWithValue("@ServiceID", serviceID)
-                cmd.Parameters.AddWithValue("@StartDate", startDate)
-
-                ' Handle the nullable EndDate parameter
-                If endDate.HasValue Then
-                    cmd.Parameters.AddWithValue("@EndDate", endDate.Value)
-                Else
-                    cmd.Parameters.AddWithValue("@EndDate", DBNull.Value)
-                End If
-                If addonServiceID.HasValue Then
-                    cmd.Parameters.AddWithValue("@AddonServiceID", addonServiceID.Value)
-                Else
-                    cmd.Parameters.AddWithValue("@AddonServiceID", DBNull.Value) ' Insert NULL if no addon is selected
-                End If
-                cmd.Parameters.AddWithValue("@BillingFrequency", billingFrequency)
-                cmd.Parameters.AddWithValue("@PaymentMethod", paymentMethod)
-                cmd.Parameters.AddWithValue("@Price", price)
-                cmd.Parameters.AddWithValue("@ContractStatus", contractStatus)
-                cmd.ExecuteNonQuery()
-            End Using
-        End Using
+    Private Sub ComboBoxPaymentMethod_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ComboBoxPaymentMethod.SelectedIndexChanged
+        PaymentMethodSelectedService.PaymentMethodChange(ComboBoxPaymentMethod, TextBoxReferenceID, TextBoxCheque)
     End Sub
-    ''' <summary>
-    ''' Gets all customer names from the database.
-    ''' </summary>
-    Public Function GetAllCustomerNames() As DataTable
-        Dim dt As New DataTable()
-        Using con As New SqlConnection(constr)
-            Dim sql As String = "SELECT Name FROM CustomersTable ORDER BY Name"
-            Using cmd As New SqlCommand(sql, con)
-                con.Open()
-                Using reader As SqlDataReader = cmd.ExecuteReader()
-                    dt.Load(reader)
-                End Using
-            End Using
-        End Using
-        Return dt
-    End Function
 
-    ''' <summary>
-    ''' Gets a customer ID by name.
-    ''' </summary>
-    Public Function GetCustomerID(customerName As String) As Integer
-        Using con As New SqlConnection(constr)
-            Dim customerID As Integer = 0
-            con.Open()
-            Dim selectQuery As String = "SELECT CustomerID FROM CustomersTable WHERE Name = @Name"
-            Using cmd As New SqlCommand(selectQuery, con)
-                cmd.Parameters.AddWithValue("@Name", customerName)
-                Dim result = cmd.ExecuteScalar()
-                If Not IsDBNull(result) AndAlso result IsNot Nothing Then
-                    customerID = CType(result, Integer)
-                End If
-            End Using
-            Return customerID
-        End Using
-    End Function
+    Private Sub FullScreenServiceBtn_Click(sender As Object, e As EventArgs) Handles FullScreenServiceBtn.Click
+        ShowPanelDocked.ShowServicesPanelDocked(PanelServiceInfo, ListViewServices)
+    End Sub
 
-    ''' <summary>
-    ''' Gets service details (ID and Price) by service name.
-    ''' </summary>
-    Public Function GetServiceDetails(serviceName As String) As ContractsService
-        Using con As New SqlConnection(constr)
-            Dim details As New ContractsService()
-            con.Open()
-            Dim selectQuery As String = "SELECT ServiceID, Price FROM ServicesTable WHERE ServiceName = @Name"
-            Using cmd As New SqlCommand(selectQuery, con)
-                cmd.Parameters.AddWithValue("@Name", serviceName)
-                Using reader As SqlDataReader = cmd.ExecuteReader()
-                    If reader.Read() Then
-                        details.ServiceID = reader.GetInt32(0)
-                        details.Price = reader.GetDecimal(1)
-                    End If
-                End Using
-            End Using
-            Return details
-        End Using
-    End Function
+    Private Sub ComboBoxDiscount_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ComboBoxDiscount.SelectedIndexChanged
+        CalculatePriceService.CalculateTotalPrice(ComboBoxServices, ComboBoxAddons, ComboBoxDiscount, TextBoxPrice)
+    End Sub
 
-    ''' <summary>
-    ''' Gets all non-addon services.
-    ''' </summary>
-    Public Function GetBaseServices() As DataTable
-        Dim dt As New DataTable()
-        Using con As New SqlConnection(constr)
-            con.Open()
-            Dim selectQuery As String = "SELECT ServiceID, ServiceName FROM ServicesTable WHERE Addon = 0 ORDER BY ServiceName"
-            Using cmd As New SqlCommand(selectQuery, con)
-                Using adapter As New SqlDataAdapter(cmd)
-                    adapter.Fill(dt)
-                End Using
-            End Using
-        End Using
-        Return dt
-    End Function
-
-    ''' <summary>
-    ''' Gets all addon services.
-    ''' </summary>
-    Public Function GetAddonServices() As DataTable
-        Dim dt As New DataTable()
-        Using con As New SqlConnection(constr)
-            con.Open()
-            Dim selectQuery As String = "SELECT ServiceID, ServiceName FROM ServicesTable WHERE Addon = 1 ORDER BY ServiceName"
-            Using cmd As New SqlCommand(selectQuery, con)
-                Using adapter As New SqlDataAdapter(cmd)
-                    adapter.Fill(dt)
-                End Using
-            End Using
-        End Using
-        Return dt
-    End Function
+    Private Sub TextBoxSearchBar_TextChanged(sender As Object, e As EventArgs) Handles TextBoxSearchBar.TextChanged
+        SearchBarService.SearchBarFunctionForContract(TextBoxSearchBar, DataGridViewContract)
+    End Sub
+    Private Sub TextBoxSearchBar_Click(sender As Object, e As EventArgs) Handles TextBoxSearchBar.Click
+        SearchBarTextChangeService.TextBoxSearchBar(TextBoxSearchBar, e)
+    End Sub
 End Class
 
