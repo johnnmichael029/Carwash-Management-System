@@ -1,4 +1,0 @@
-﻿User-agent: *
-Allow: /
-
-Sitemap: https://sandigan-carwash-b0h2e3cbfeh2frek.japaneast-01.azurewebsites.net/sitemap.xml
